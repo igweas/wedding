@@ -53,6 +53,7 @@ export const initializeGapi = async () => {
     tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPES,
+      ux_mode: 'redirect',
       callback: (response) => {
         if (response.error) {
           console.error('Token client error:', response.error);
@@ -81,7 +82,7 @@ export const signInWithGoogle = async () => {
       throw new Error('Google Auth not initialized properly');
     }
     
-    // Request access token
+    // Request access token using redirect mode
     return new Promise((resolve, reject) => {
       tokenClient.callback = async (response) => {
         if (response.error) {

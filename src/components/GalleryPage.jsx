@@ -53,19 +53,19 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 p-6">
+      <div className="bg-white border-b border-gray-200 p-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">
-              {isModerator ? `Moderator Page For: ${albumName}` : 'Gallery'}
+            <h1 className="text-2xl font-bold text-gray-900">
+              {isModerator ? `Delete from Gallery: ${albumName}` : 'Gallery'}
             </h1>
             {isModerator && (
-              <div className="mt-2 space-y-1 text-sm text-gray-300">
-                <p><span className="text-red-400">Caution:</span> This page provides any user the ability to remove an image from WedUploader. It is intended to provide guests and the wedding couple the capability to correct an accidental upload or remove from public view any images deemed inappropriate by any user.</p>
-                <p><span className="text-amber-400">Note:</span> When an image is removed, it is hidden from public view on WedUploader. However, the file remains in the wedding couple's Google Drive and the wedding couple has the capability to re-instate images at their discretion.</p>
-                <p><span className="text-blue-400">Instructions:</span> Click the red trash can button on the image you would like to remove and then confirm your choice on the pop-up.</p>
+              <div className="mt-2 space-y-1 text-sm text-gray-600">
+                <p><span className="text-red-600 font-medium">Caution:</span> This page provides any user the ability to remove an image from Event Gallery Upload. It is intended to provide guests and the wedding couple the capability to correct an accidental upload or remove from public view any images deemed inappropriate by any user.</p>
+                <p><span className="text-amber-600 font-medium">Note:</span> When an image is removed, it is hidden from public view on Event Gallery Upload. However, the file remains in the wedding couple's Google Drive and the wedding couple has the capability to re-instate images at their discretion.</p>
+                <p><span className="text-blue-600 font-medium">Instructions:</span> Click the red trash can button on the image you would like to remove and then confirm your choice on the pop-up.</p>
               </div>
             )}
           </div>
@@ -74,14 +74,14 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
               <Button 
                 variant="outline" 
                 onClick={onBack}
-                className="text-amber-400 border-amber-400 hover:bg-amber-400 hover:text-gray-900"
+                className="text-amber-600 border-amber-600 hover:bg-amber-600 hover:text-white"
               >
                 Return to Upload Gallery
               </Button>
             )}
             <Button 
               variant="outline" 
-              className="text-red-400 border-red-400 hover:bg-red-400 hover:text-white"
+              className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
             >
               Need to Remove File?
             </Button>
@@ -89,68 +89,68 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
             {/* Sort/Filter Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger>
-                <Button variant="outline" className="text-white border-white hover:bg-white hover:text-gray-900">
+                <Button variant="outline" className="text-gray-700 border-gray-300 hover:bg-gray-50">
                   <FilterIcon className="mr-2 h-4 w-4" />
                   Sort / Filter
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-gray-800 border-gray-700">
-                <div className="px-3 py-2 text-sm font-semibold text-gray-300 border-b border-gray-700">
+              <DropdownMenuContent className="w-56 bg-white border-gray-200">
+                <div className="px-3 py-2 text-sm font-semibold text-gray-700 border-b border-gray-200">
                   Sort by uploaded time
                 </div>
                 <DropdownMenuItem 
                   onClick={() => { setSortBy('uploadedTime'); setSortOrder('desc') }}
-                  className="text-white hover:bg-gray-700"
+                  className="text-gray-700 hover:bg-gray-100"
                 >
                   <ArrowDownIcon className="mr-2 h-4 w-4" />
                   Newest first
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => { setSortBy('uploadedTime'); setSortOrder('asc') }}
-                  className="text-white hover:bg-gray-700"
+                  className="text-gray-700 hover:bg-gray-100"
                 >
                   <ArrowUpIcon className="mr-2 h-4 w-4" />
                   Oldest first
                 </DropdownMenuItem>
                 
-                <div className="px-3 py-2 text-sm font-semibold text-gray-300 border-b border-gray-700 mt-2">
+                <div className="px-3 py-2 text-sm font-semibold text-gray-700 border-b border-gray-200 mt-2">
                   Sort by date taken
                 </div>
                 <DropdownMenuItem 
                   onClick={() => { setSortBy('dateTaken'); setSortOrder('desc') }}
-                  className="text-white hover:bg-gray-700"
+                  className="text-gray-700 hover:bg-gray-100"
                 >
                   <ArrowDownIcon className="mr-2 h-4 w-4" />
                   Newest first
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => { setSortBy('dateTaken'); setSortOrder('asc') }}
-                  className="text-white hover:bg-gray-700"
+                  className="text-gray-700 hover:bg-gray-100"
                 >
                   <ArrowUpIcon className="mr-2 h-4 w-4" />
                   Oldest first
                 </DropdownMenuItem>
                 
-                <div className="px-3 py-2 text-sm font-semibold text-gray-300 border-b border-gray-700 mt-2">
+                <div className="px-3 py-2 text-sm font-semibold text-gray-700 border-b border-gray-200 mt-2">
                   Filter by
                 </div>
                 <DropdownMenuItem 
                   onClick={() => setFilterBy('all')}
-                  className="text-white hover:bg-gray-700"
+                  className="text-gray-700 hover:bg-gray-100"
                 >
                   <ImageIcon className="mr-2 h-4 w-4" />
                   All files
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => setFilterBy('image')}
-                  className="text-white hover:bg-gray-700"
+                  className="text-gray-700 hover:bg-gray-100"
                 >
                   <ImageIcon className="mr-2 h-4 w-4" />
                   Images only
                 </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => setFilterBy('video')}
-                  className="text-white hover:bg-gray-700"
+                  className="text-gray-700 hover:bg-gray-100"
                 >
                   <VideoIcon className="mr-2 h-4 w-4" />
                   Videos only
@@ -167,7 +167,7 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
           {sortedAndFilteredImages.map((image) => (
             <div key={image.id} className="relative group">
               <div 
-                className="aspect-square bg-gray-800 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+                className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity border border-gray-200"
                 onClick={() => setSelectedImage(image)}
               >
                 <img
@@ -191,7 +191,7 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
               )}
               
               {/* Watermark */}
-              <div className="absolute bottom-2 right-2 text-white text-xs opacity-50">
+              <div className="absolute bottom-2 right-2 text-gray-600 text-xs opacity-50">
                 📷
               </div>
             </div>
@@ -200,7 +200,7 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
 
         {sortedAndFilteredImages.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-400 text-lg">No images found matching your filters.</p>
+            <p className="text-gray-500 text-lg">No images found matching your filters.</p>
           </div>
         )}
       </div>
@@ -230,25 +230,27 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
 
       {/* Remove Confirmation Dialog */}
       <Dialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
-        <DialogContent className="bg-gray-800 text-white border-gray-700">
+        <DialogContent className="bg-white text-gray-900 border-gray-200">
           <DialogHeader>
-            <DialogTitle>Confirm Removal</DialogTitle>
+            <DialogTitle className="text-gray-900">Confirm Removal</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p>Are you sure you want to remove this image from the gallery?</p>
-            <p className="text-sm text-gray-400">
+            <p className="text-gray-700">Are you sure you want to remove this image from the gallery?</p>
+            <p className="text-sm text-gray-500">
               This will hide the image from public view, but it will remain in the couple's Google Drive.
             </p>
             <div className="flex justify-end gap-3">
               <Button 
                 variant="outline" 
                 onClick={() => setShowRemoveDialog(false)}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </Button>
               <Button 
                 variant="destructive" 
                 onClick={() => handleRemoveImage(imageToRemove.id)}
+                className="bg-red-600 text-white hover:bg-red-700"
               >
                 Remove Image
               </Button>

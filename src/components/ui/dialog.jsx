@@ -12,7 +12,7 @@ const Dialog = ({ children, open, onOpenChange }) => {
             className="fixed inset-0 bg-black/50" 
             onClick={() => onOpenChange(false)}
           />
-          <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-auto">
+          <div className="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-auto border border-gray-200">
             {children}
           </div>
         </div>
@@ -56,7 +56,7 @@ const DialogHeader = ({ children, className }) => (
 )
 
 const DialogTitle = ({ children, className }) => (
-  <h2 className={`text-lg font-semibold ${className || ''}`}>
+  <h2 className={`text-lg font-semibold text-gray-900 ${className || ''}`}>
     {children}
   </h2>
 )

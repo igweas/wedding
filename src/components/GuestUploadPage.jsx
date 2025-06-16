@@ -44,15 +44,15 @@ export default function GuestUploadPage({ albumName, onBack }) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-gray-800 border-b border-gray-700 p-6">
+      <div className="bg-white border-b border-gray-200 p-6">
         <div className="max-w-2xl mx-auto text-center">
-          <h1 className="text-2xl font-bold mb-2">{albumName}</h1>
+          <h1 className="text-2xl font-bold mb-2 text-gray-900">{albumName}</h1>
           <Button 
             variant="outline" 
             onClick={onBack}
-            className="text-amber-400 border-amber-400 hover:bg-amber-400 hover:text-gray-900"
+            className="text-amber-600 border-amber-600 hover:bg-amber-600 hover:text-white"
           >
             Jump to Gallery >>>
           </Button>
@@ -61,9 +61,9 @@ export default function GuestUploadPage({ albumName, onBack }) {
 
       {/* Upload Section */}
       <div className="max-w-2xl mx-auto p-6">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-8 text-center">
-            <p className="text-amber-400 mb-6 text-lg">
+            <p className="text-amber-600 mb-6 text-lg font-medium">
               UPLOAD PICTURES OR VIDEOS YOU WANT TO SHARE.<br />
               REMAIN ON PAGE UNTIL ALL UPLOADS COMPLETE.
             </p>
@@ -80,7 +80,7 @@ export default function GuestUploadPage({ albumName, onBack }) {
               <label htmlFor="file-upload">
                 <Button 
                   variant="outline" 
-                  className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 text-lg"
+                  className="bg-gray-900 text-white hover:bg-gray-800 px-8 py-3 text-lg"
                   asChild
                 >
                   <span>
@@ -94,24 +94,24 @@ export default function GuestUploadPage({ albumName, onBack }) {
             {/* Selected Files */}
             {selectedFiles.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-4">Selected Files ({selectedFiles.length})</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Selected Files ({selectedFiles.length})</h3>
                 <div className="space-y-2 max-h-40 overflow-y-auto">
                   {selectedFiles.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between bg-gray-700 p-3 rounded">
+                    <div key={index} className="flex items-center justify-between bg-gray-100 p-3 rounded">
                       <div className="flex items-center">
                         {file.type.startsWith('image/') ? (
-                          <ImageIcon className="h-4 w-4 mr-2 text-blue-400" />
+                          <ImageIcon className="h-4 w-4 mr-2 text-blue-600" />
                         ) : (
-                          <VideoIcon className="h-4 w-4 mr-2 text-red-400" />
+                          <VideoIcon className="h-4 w-4 mr-2 text-red-600" />
                         )}
-                        <span className="text-sm">{file.name}</span>
-                        <span className="text-xs text-gray-400 ml-2">({formatFileSize(file.size)})</span>
+                        <span className="text-sm text-gray-900">{file.name}</span>
+                        <span className="text-xs text-gray-500 ml-2">({formatFileSize(file.size)})</span>
                       </div>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => removeFile(index)}
-                        className="text-red-400 hover:text-red-300"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         Remove
                       </Button>
@@ -122,28 +122,28 @@ export default function GuestUploadPage({ albumName, onBack }) {
             )}
 
             {/* Message Form */}
-            <div className="bg-gray-700 p-6 rounded-lg">
+            <div className="bg-gray-50 p-6 rounded-lg">
               <div className="flex items-center mb-4">
-                <span className="text-amber-400 mr-2">Please leave a message ▼</span>
+                <span className="text-amber-600 mr-2 font-medium">Please leave a message ▼</span>
               </div>
-              <p className="text-sm text-gray-300 mb-4">
+              <p className="text-sm text-gray-600 mb-4">
                 Personalize your upload with a name and a message.<br />
                 Submit with file upload.
               </p>
               
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Name</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">Name</label>
                   <Input
                     value={uploaderName}
                     onChange={(e) => setUploaderName(e.target.value)}
                     placeholder="NAME"
-                    className="bg-white text-gray-900"
+                    className="bg-white text-gray-900 border-gray-300"
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Message</label>
+                  <label className="block text-sm font-medium mb-2 text-gray-700">Message</label>
                   <textarea
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
@@ -151,7 +151,7 @@ export default function GuestUploadPage({ albumName, onBack }) {
                     className="w-full h-24 px-3 py-2 bg-white text-gray-900 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                     maxLength={255}
                   />
-                  <div className="text-right text-xs text-gray-400 mt-1">
+                  <div className="text-right text-xs text-gray-500 mt-1">
                     {message.length}/255
                   </div>
                 </div>
@@ -163,7 +163,7 @@ export default function GuestUploadPage({ albumName, onBack }) {
               <Button
                 onClick={handleUpload}
                 disabled={selectedFiles.length === 0 || isUploading}
-                className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
               >
                 {isUploading ? 'Uploading...' : 'Upload Files'}
               </Button>
@@ -173,25 +173,25 @@ export default function GuestUploadPage({ albumName, onBack }) {
 
         {/* Instructions */}
         <div className="mt-8 text-center">
-          <h3 className="text-xl font-bold mb-4 text-amber-400">HOW TO UPLOAD?</h3>
+          <h3 className="text-xl font-bold mb-4 text-amber-600">HOW TO UPLOAD?</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="w-12 h-12 bg-amber-400 text-gray-900 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2">
+              <div className="w-12 h-12 bg-amber-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2">
                 01
               </div>
-              <h4 className="font-semibold mb-1">Click Browse Files</h4>
+              <h4 className="font-semibold mb-1 text-gray-900">Click Browse Files</h4>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-amber-400 text-gray-900 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2">
+              <div className="w-12 h-12 bg-amber-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2">
                 02
               </div>
-              <h4 className="font-semibold mb-1">Select Your Files</h4>
+              <h4 className="font-semibold mb-1 text-gray-900">Select Your Files</h4>
             </div>
             <div className="text-center">
-              <div className="w-12 h-12 bg-amber-400 text-gray-900 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2">
+              <div className="w-12 h-12 bg-amber-600 text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-2">
                 03
               </div>
-              <h4 className="font-semibold mb-1">Click Upload</h4>
+              <h4 className="font-semibold mb-1 text-gray-900">Click Upload</h4>
             </div>
           </div>
         </div>

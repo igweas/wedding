@@ -5,7 +5,7 @@ const Button = React.forwardRef(({ className, variant = "default", size = "defau
   
   const variants = {
     default: "bg-gray-900 text-white hover:bg-gray-800",
-    destructive: "bg-red-500 text-white hover:bg-red-600",
+    destructive: "bg-red-600 text-white hover:bg-red-700",
     outline: "border border-gray-300 bg-white hover:bg-gray-50 text-gray-700",
     secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
     ghost: "hover:bg-gray-100 text-gray-700",

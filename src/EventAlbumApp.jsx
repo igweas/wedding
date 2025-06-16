@@ -4,21 +4,32 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/ui/tabs";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./components/ui/dialog";
-import { QrCodeIcon, Share2Icon, UploadCloudIcon, ExternalLinkIcon, CopyIcon, EyeIcon } from "lucide-react";
+import { QrCodeIcon, Share2Icon, UploadCloudIcon, ExternalLinkIcon, CopyIcon, EyeIcon, TrashIcon, PlusIcon, ArrowLeftIcon } from "lucide-react";
 import QRCode from 'qrcode';
 import GuestUploadPage from './components/GuestUploadPage';
 import GalleryPage from './components/GalleryPage';
+import GroupManagementPage from './components/GroupManagementPage';
 
 export default function EventAlbumApp() {
   const [albums, setAlbums] = useState([
-    { id: 1, name: "John & Emma's Wedding", date: "10th June 2025", shareUrl: "https://weduploader.com/album/john-emma-wedding" }
+    { 
+      id: 1, 
+      name: "John & Emma's Wedding", 
+      date: "10th June 2025", 
+      shareUrl: "https://weduploader.com/album/john-emma-wedding",
+      groups: [
+        { id: 1, name: "Pre Wedding", description: "Engagement and pre-wedding photos" },
+        { id: 2, name: "Ceremony", description: "Wedding ceremony moments" },
+        { id: 3, name: "Reception", description: "Reception and party photos" }
+      ]
+    }
   ]);
   const [newAlbumName, setNewAlbumName] = useState("");
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [showQrDialog, setShowQrDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'upload', 'gallery', 'moderator'
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'upload', 'gallery', 'moderator', 'groups'
   const [currentAlbum, setCurrentAlbum] = useState(null);
 
   const createAlbum = () => {
@@ -31,10 +42,14 @@ export default function EventAlbumApp() {
           month: 'long', 
           year: 'numeric' 
         }),
-        shareUrl: `https://weduploader.com/album/${newAlbumName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
+        shareUrl: `https://weduploader.com/album/${newAlbumName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+        groups: []
       };
       setAlbums([...albums, newAlbum]);
       setNewAlbumName("");
+      // Navigate to group management for the new album
+      setCurrentAlbum(newAlbum);
+      setCurrentView('groups');
     }
   };
 
@@ -77,9 +92,20 @@ export default function EventAlbumApp() {
     setCurrentView(isModerator ? 'moderator' : 'gallery');
   };
 
+  const openGroupManagement = (album) => {
+    setCurrentAlbum(album);
+    setCurrentView('groups');
+  };
+
   const backToDashboard = () => {
     setCurrentView('dashboard');
     setCurrentAlbum(null);
+  };
+
+  const updateAlbumGroups = (albumId, groups) => {
+    setAlbums(prev => prev.map(album => 
+      album.id === albumId ? { ...album, groups } : album
+    ));
   };
 
   if (currentView === 'upload') {
@@ -101,10 +127,20 @@ export default function EventAlbumApp() {
     );
   }
 
+  if (currentView === 'groups') {
+    return (
+      <GroupManagementPage
+        album={currentAlbum}
+        onBack={backToDashboard}
+        onUpdateGroups={(groups) => updateAlbumGroups(currentAlbum.id, groups)}
+      />
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <div className="max-w-6xl mx-auto p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-8">Event Album Uploader</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-8">Event Gallery Upload</h1>
 
         {/* Navigation Tabs */}
         <Tabs defaultValue="albums" className="w-full">
@@ -118,36 +154,38 @@ export default function EventAlbumApp() {
           <TabsContent value="albums">
             <div className="space-y-6">
               {/* Create New Album Section */}
-              <Card>
+              <Card className="bg-white border-gray-200">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">Create New Album</h2>
                   <div className="flex gap-3">
                     <Input 
                       placeholder="Event Name (e.g., John & Emma's Wedding)" 
-                      className="flex-1"
+                      className="flex-1 bg-white text-gray-900 border-gray-300"
                       value={newAlbumName}
                       onChange={(e) => setNewAlbumName(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && createAlbum()}
                     />
-                    <Button onClick={createAlbum}>Create</Button>
+                    <Button onClick={createAlbum} className="bg-gray-900 text-white hover:bg-gray-800">Create</Button>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Existing Albums */}
               {albums.map((album) => (
-                <Card key={album.id}>
+                <Card key={album.id} className="bg-white border-gray-200">
                   <CardContent className="p-6">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div>
                         <h3 className="text-lg font-medium text-gray-900">{album.name}</h3>
                         <p className="text-sm text-gray-500">{album.date}</p>
+                        <p className="text-xs text-gray-400 mt-1">{album.groups?.length || 0} groups</p>
                       </div>
                       <div className="flex flex-wrap gap-3">
                         <Button 
                           variant="outline" 
                           size="sm"
                           onClick={() => generateQRCode(album)}
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           <QrCodeIcon className="mr-2 h-4 w-4" />
                           QR Code
@@ -156,6 +194,7 @@ export default function EventAlbumApp() {
                           variant="outline" 
                           size="sm"
                           onClick={() => shareLink(album)}
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           <Share2Icon className="mr-2 h-4 w-4" />
                           Share Link
@@ -164,6 +203,7 @@ export default function EventAlbumApp() {
                           variant="outline" 
                           size="sm"
                           onClick={() => openGallery(album)}
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
                         >
                           <EyeIcon className="mr-2 h-4 w-4" />
                           View Gallery
@@ -171,14 +211,25 @@ export default function EventAlbumApp() {
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => openGroupManagement(album)}
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                        >
+                          <PlusIcon className="mr-2 h-4 w-4" />
+                          Manage Groups
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
                           onClick={() => openGallery(album, true)}
                           className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
                         >
-                          Moderate
+                          <TrashIcon className="mr-2 h-4 w-4" />
+                          Delete from gallery
                         </Button>
                         <Button 
                           size="sm"
                           onClick={() => openUploadPage(album)}
+                          className="bg-gray-900 text-white hover:bg-gray-800"
                         >
                           <UploadCloudIcon className="mr-2 h-4 w-4" />
                           Upload
@@ -193,7 +244,7 @@ export default function EventAlbumApp() {
 
           {/* Storage Tab */}
           <TabsContent value="storage">
-            <Card>
+            <Card className="bg-white border-gray-200">
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Usage</h2>
                 <div className="space-y-2">
@@ -222,7 +273,7 @@ export default function EventAlbumApp() {
 
           {/* FAQs Tab */}
           <TabsContent value="faq">
-            <Card>
+            <Card className="bg-white border-gray-200">
               <CardContent className="p-6">
                 <h2 className="text-lg font-semibold text-gray-900 mb-6">Frequently Asked Questions</h2>
                 <div className="space-y-6">
@@ -254,10 +305,10 @@ export default function EventAlbumApp() {
 
         {/* QR Code Dialog */}
         <Dialog open={showQrDialog} onOpenChange={setShowQrDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md bg-white">
             <DialogHeader>
-              <DialogTitle>QR Code for {selectedAlbum?.name}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-gray-900">QR Code for {selectedAlbum?.name}</DialogTitle>
+              <DialogDescription className="text-gray-600">
                 Guests can scan this QR code to access the upload page
               </DialogDescription>
             </DialogHeader>
@@ -268,11 +319,12 @@ export default function EventAlbumApp() {
               <div className="text-center">
                 <p className="text-sm text-gray-600 mb-2">Or share this link:</p>
                 <div className="flex items-center gap-2 p-2 bg-gray-100 rounded">
-                  <code className="text-sm flex-1 truncate">{selectedAlbum?.shareUrl}</code>
+                  <code className="text-sm flex-1 truncate text-gray-900">{selectedAlbum?.shareUrl}</code>
                   <Button 
                     size="sm" 
                     variant="outline"
                     onClick={() => copyToClipboard(selectedAlbum?.shareUrl)}
+                    className="border-gray-300 text-gray-700 hover:bg-gray-50"
                   >
                     <CopyIcon className="h-4 w-4" />
                   </Button>
@@ -284,27 +336,28 @@ export default function EventAlbumApp() {
 
         {/* Share Link Dialog */}
         <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md bg-white">
             <DialogHeader>
-              <DialogTitle>Share {selectedAlbum?.name}</DialogTitle>
-              <DialogDescription>
+              <DialogTitle className="text-gray-900">Share {selectedAlbum?.name}</DialogTitle>
+              <DialogDescription className="text-gray-600">
                 Share this link with your guests so they can upload photos and videos
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div className="flex items-center gap-2 p-3 bg-gray-100 rounded">
-                <code className="text-sm flex-1 truncate">{selectedAlbum?.shareUrl}</code>
+                <code className="text-sm flex-1 truncate text-gray-900">{selectedAlbum?.shareUrl}</code>
                 <Button 
                   size="sm" 
                   variant="outline"
                   onClick={() => copyToClipboard(selectedAlbum?.shareUrl)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   <CopyIcon className="h-4 w-4" />
                 </Button>
               </div>
               <div className="flex gap-2">
                 <Button 
-                  className="flex-1"
+                  className="flex-1 bg-gray-900 text-white hover:bg-gray-800"
                   onClick={() => window.open(`mailto:?subject=Upload photos to ${selectedAlbum?.name}&body=Hi! Please upload your photos and videos to our album: ${selectedAlbum?.shareUrl}`, '_blank')}
                 >
                   Share via Email
@@ -312,6 +365,7 @@ export default function EventAlbumApp() {
                 <Button 
                   variant="outline"
                   onClick={() => window.open(selectedAlbum?.shareUrl, '_blank')}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
                 >
                   <ExternalLinkIcon className="h-4 w-4" />
                 </Button>

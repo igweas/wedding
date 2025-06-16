@@ -18,7 +18,7 @@ export const initializeGapi = async () => {
     }
     
     // Check if credentials are still placeholder values
-    if (CLIENT_ID.includes('your-client-id-here') || API_KEY.includes('your-api-key-here')) {
+    if (CLIENT_ID.includes('VITE_GOOGLE_CLIENT_ID') || API_KEY.includes('VITE_GOOGLE_API_KEY')) {
       throw new Error('Google API credentials not configured. Please update VITE_GOOGLE_CLIENT_ID and VITE_GOOGLE_API_KEY in your .env file with your actual credentials.');
     }
     

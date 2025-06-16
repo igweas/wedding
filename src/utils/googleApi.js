@@ -73,79 +73,101 @@ export const signInWithGoogle = async () => {
     
     // Request access token using popup mode
     return new Promise((resolve, reject) => {
-      // Set up a timeout to detect popup blocking
-      let timeoutId = setTimeout(() => {
-        reject(new Error('popup_blocked'));
-      }, 1000); // 1 second timeout for popup to appear
+      let callbackExecuted = false;
       
-      tokenClient.requestAccessToken({
-        prompt: 'consent',
-        callback: async (response) => {
-          clearTimeout(timeoutId);
-          
-          if (response.error) {
-            if (response.error === 'popup_closed_by_user') {
-              reject(new Error('popup_closed_by_user'));
-            } else if (response.error === 'invalid_client') {
-              reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
-            } else if (response.error === 'access_denied') {
-              reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
-            } else if (response.error === 'popup_blocked_by_browser') {
-              reject(new Error('popup_blocked'));
-            } else {
-              // Check if this might be a popup blocking issue
-              if (response.error.includes('popup') || response.error.includes('blocked')) {
+      // Set up a timeout to detect popup blocking
+      const timeoutId = setTimeout(() => {
+        if (!callbackExecuted) {
+          callbackExecuted = true;
+          reject(new Error('popup_blocked'));
+        }
+      }, 500); // Reduced timeout for faster detection
+      
+      try {
+        tokenClient.requestAccessToken({
+          prompt: 'consent',
+          callback: async (response) => {
+            if (callbackExecuted) return;
+            callbackExecuted = true;
+            clearTimeout(timeoutId);
+            
+            if (response.error) {
+              if (response.error === 'popup_closed_by_user') {
+                reject(new Error('popup_closed_by_user'));
+              } else if (response.error === 'invalid_client') {
+                reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
+              } else if (response.error === 'access_denied') {
+                reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
+              } else if (response.error === 'popup_blocked_by_browser') {
                 reject(new Error('popup_blocked'));
               } else {
-                reject(new Error(`Authentication error: ${response.error}`));
+                // Check if this might be a popup blocking issue
+                if (response.error.includes('popup') || response.error.includes('blocked')) {
+                  reject(new Error('popup_blocked'));
+                } else {
+                  reject(new Error(`Authentication error: ${response.error}`));
+                }
               }
-            }
-            return;
-          }
-          
-          try {
-            // Get user info using the access token
-            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-              headers: {
-                'Authorization': `Bearer ${response.access_token}`
-              }
-            });
-            
-            if (!userInfoResponse.ok) {
-              throw new Error('Failed to fetch user information');
+              return;
             }
             
-            const userInfo = await userInfoResponse.json();
+            try {
+              // Get user info using the access token
+              const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+                headers: {
+                  'Authorization': `Bearer ${response.access_token}`
+                }
+              });
+              
+              if (!userInfoResponse.ok) {
+                throw new Error('Failed to fetch user information');
+              }
+              
+              const userInfo = await userInfoResponse.json();
+              
+              currentUser = {
+                id: userInfo.id,
+                name: userInfo.name,
+                email: userInfo.email,
+                imageUrl: userInfo.picture,
+                accessToken: response.access_token
+              };
+              
+              resolve(currentUser);
+            } catch (error) {
+              reject(error);
+            }
+          },
+          error_callback: (error) => {
+            if (callbackExecuted) return;
+            callbackExecuted = true;
+            clearTimeout(timeoutId);
             
-            currentUser = {
-              id: userInfo.id,
-              name: userInfo.name,
-              email: userInfo.email,
-              imageUrl: userInfo.picture,
-              accessToken: response.access_token
-            };
-            
-            resolve(currentUser);
-          } catch (error) {
-            reject(error);
+            // Handle GSI library errors that don't go through the main callback
+            if (error.type === 'popup_failed_to_open' || 
+                error.message?.includes('popup') || 
+                error.message?.includes('Failed to open popup')) {
+              reject(new Error('popup_blocked'));
+            } else {
+              reject(new Error(`Authentication error: ${error.message || error.type || 'Unknown error'}`));
+            }
           }
-        },
-        error_callback: (error) => {
+        });
+      } catch (error) {
+        if (!callbackExecuted) {
+          callbackExecuted = true;
           clearTimeout(timeoutId);
-          // Handle GSI library errors that don't go through the main callback
-          if (error.type === 'popup_failed_to_open' || error.message?.includes('popup')) {
+          
+          // Check if the error is related to popup blocking
+          if (error.message?.includes('Failed to open popup') || 
+              error.message?.includes('popup') || 
+              error.message?.includes('blocked')) {
             reject(new Error('popup_blocked'));
           } else {
-            reject(new Error(`Authentication error: ${error.message || error.type || 'Unknown error'}`));
+            reject(error);
           }
         }
-      });
-      
-      // Additional check: if the tokenClient.requestAccessToken doesn't trigger any callback
-      // within a reasonable time, assume popup was blocked
-      setTimeout(() => {
-        reject(new Error('popup_blocked'));
-      }, 2000);
+      }
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);

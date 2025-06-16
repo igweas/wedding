@@ -71,10 +71,8 @@ export const signInWithGoogle = async () => {
       throw new Error('Google Auth not initialized properly');
     }
     
-    // First attempt: Try popup mode
+    // Request access token using popup mode
     return new Promise((resolve, reject) => {
-      let popupAttempted = false;
-      
       tokenClient.requestAccessToken({
         prompt: 'consent',
         callback: async (response) => {
@@ -126,15 +124,6 @@ export const signInWithGoogle = async () => {
           }
         }
       });
-      
-      // Set a timeout to detect if popup was blocked
-      setTimeout(() => {
-        if (!popupAttempted) {
-          popupAttempted = true;
-          // This timeout suggests popup might be blocked
-          reject(new Error('popup_blocked'));
-        }
-      }, 1000);
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);

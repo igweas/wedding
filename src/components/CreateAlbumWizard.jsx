@@ -55,7 +55,15 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
         }
       } catch (error) {
         console.error('Failed to initialize Google API:', error)
-        setError('Failed to initialize Google services. Please refresh the page and try again.')
+        
+        // Provide more specific error messages
+        if (error.message.includes('domain verification')) {
+          setError('This application is currently in development mode and requires domain verification. Please contact the developer to add your domain to the authorized origins, or try accessing the application from localhost.')
+        } else if (error.message.includes('credentials not configured')) {
+          setError('Google API credentials are not properly configured. Please check the .env file configuration.')
+        } else {
+          setError('Failed to initialize Google services. This may be due to domain verification requirements in the development environment.')
+        }
       }
     }
 
@@ -101,7 +109,15 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
       }))
     } catch (error) {
       console.error('Google sign-in failed:', error)
-      setError('Failed to connect to Google. Please try again.')
+      
+      // Provide more specific error messages
+      if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
+        setError('This application requires domain verification to access Google services. In development mode, please ensure your domain is added to the Google Cloud Console authorized origins, or contact the developer for assistance.')
+      } else if (error.message.includes('popup_closed_by_user')) {
+        setError('Sign-in was cancelled. Please try again.')
+      } else {
+        setError('Failed to connect to Google. This may be due to domain verification requirements. Please contact the developer.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -215,6 +231,10 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
             <div>
               <p className="text-red-800 font-medium">Error</p>
               <p className="text-red-700 text-sm">{error}</p>
+              <div className="mt-2 text-xs text-red-600">
+                <p><strong>Development Note:</strong> This error typically occurs in development environments due to Google's domain verification requirements.</p>
+                <p><strong>Solution:</strong> Add your current domain to the Google Cloud Console authorized origins, or contact the developer for assistance.</p>
+              </div>
             </div>
           </div>
         )}

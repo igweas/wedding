@@ -26,46 +26,21 @@ export const initializeGapi = async () => {
     
     // Initialize GAPI client for Drive API only
     await new Promise((resolve, reject) => {
-      gapi.load('client', async () => {
+      gapi.load('client:auth2', async () => {
         try {
           await gapi.client.init({
             apiKey: API_KEY,
-            discoveryDocs: [DISCOVERY_DOC]
+            clientId: CLIENT_ID,
+            discoveryDocs: [DISCOVERY_DOC],
+            scope: SCOPES
           });
+          isInitialized = true;
           resolve();
         } catch (error) {
           reject(error);
         }
       });
     });
-
-    // Wait for Google Identity Services to load
-    await new Promise((resolve) => {
-      const checkGIS = () => {
-        if (window.google && window.google.accounts) {
-          resolve();
-        } else {
-          setTimeout(checkGIS, 100);
-        }
-      };
-      checkGIS();
-    });
-
-    // Initialize OAuth2 token client
-    tokenClient = google.accounts.oauth2.initTokenClient({
-      client_id: CLIENT_ID,
-      scope: SCOPES,
-      callback: (response) => {
-        if (response.error) {
-          console.error('Token client error:', response.error);
-          return;
-        }
-        // Token received, user is authenticated
-        gapi.client.setToken(response);
-      }
-    });
-
-    isInitialized = true;
   } catch (error) {
     console.error('Error initializing Google API:', error);
     throw error;
@@ -75,49 +50,32 @@ export const initializeGapi = async () => {
 export const signInWithGoogle = async () => {
   try {
     await initializeGapi();
+    const authInstance = gapi.auth2.getAuthInstance();
     
-    if (!tokenClient) {
-      throw new Error('Google OAuth client not initialized properly');
+    if (!authInstance) {
+      throw new Error('Google Auth not initialized properly');
     }
     
-    return new Promise((resolve, reject) => {
-      // Request access token
-      tokenClient.callback = async (response) => {
-        if (response.error) {
-          reject(new Error(response.error));
-          return;
-        }
-
-        try {
-          // Set the token for API calls
-          gapi.client.setToken(response);
-          
-          // Get user info using the People API
-          const userInfoResponse = await fetch(`https://www.googleapis.com/oauth2/v2/userinfo?access_token=${response.access_token}`);
-          const userInfo = await userInfoResponse.json();
-          
-          currentUser = {
-            id: userInfo.id,
-            name: userInfo.name,
-            email: userInfo.email,
-            imageUrl: userInfo.picture,
-            accessToken: response.access_token
-          };
-          
-          resolve(currentUser);
-        } catch (error) {
-          reject(error);
-        }
-      };
-
-      tokenClient.requestAccessToken({ prompt: 'consent' });
-    });
+    const user = await authInstance.signIn();
+    
+    const profile = user.getBasicProfile();
+    currentUser = {
+      id: profile.getId(),
+      name: profile.getName(),
+      email: profile.getEmail(),
+      imageUrl: profile.getImageUrl(),
+      accessToken: user.getAuthResponse().access_token
+    };
+    
+    return currentUser;
   } catch (error) {
     console.error('Error signing in with Google:', error);
-    if (error.message.includes('popup_closed_by_user')) {
+    if (error.error === 'popup_closed_by_user') {
       throw new Error('Sign-in was cancelled. Please try again.');
-    } else if (error.message.includes('invalid_client')) {
+    } else if (error.error === 'invalid_client') {
       throw new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.');
+    } else if (error.error === 'access_denied') {
+      throw new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.');
     }
     throw error;
   }
@@ -125,12 +83,9 @@ export const signInWithGoogle = async () => {
 
 export const signOutFromGoogle = async () => {
   try {
-    const token = gapi.client.getToken();
-    if (token) {
-      google.accounts.oauth2.revoke(token.access_token, () => {
-        console.log('Token revoked');
-      });
-      gapi.client.setToken(null);
+    const authInstance = gapi.auth2.getAuthInstance();
+    if (authInstance) {
+      await authInstance.signOut();
     }
     currentUser = null;
   } catch (error) {
@@ -141,8 +96,8 @@ export const signOutFromGoogle = async () => {
 
 export const isSignedIn = () => {
   try {
-    const token = gapi.client.getToken();
-    return token && currentUser;
+    const authInstance = gapi.auth2.getAuthInstance();
+    return authInstance && authInstance.isSignedIn.get();
   } catch (error) {
     return false;
   }

@@ -1,8 +1,8 @@
 import { gapi } from 'gapi-script';
 
-// Google API configuration - REPLACE THESE WITH YOUR ACTUAL CREDENTIALS
-const CLIENT_ID = 'your-client-id-here.apps.googleusercontent.com';
-const API_KEY = 'your-api-key-here';
+// Google API configuration - loaded from environment variables
+const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
 
@@ -12,9 +12,14 @@ export const initializeGapi = async () => {
   if (isInitialized) return;
   
   try {
+    // Check if environment variables are set
+    if (!CLIENT_ID || !API_KEY) {
+      throw new Error('Google API credentials not found. Please check your .env file and ensure VITE_GOOGLE_CLIENT_ID and VITE_GOOGLE_API_KEY are set.');
+    }
+    
     // Check if credentials are still placeholder values
     if (CLIENT_ID.includes('your-client-id-here') || API_KEY.includes('your-api-key-here')) {
-      throw new Error('Google API credentials not configured. Please update CLIENT_ID and API_KEY in src/utils/googleApi.js');
+      throw new Error('Google API credentials not configured. Please update VITE_GOOGLE_CLIENT_ID and VITE_GOOGLE_API_KEY in your .env file with your actual credentials.');
     }
     
     await new Promise((resolve, reject) => {
@@ -63,7 +68,7 @@ export const signInWithGoogle = async () => {
     if (error.error === 'popup_closed_by_user') {
       throw new Error('Sign-in was cancelled. Please try again.');
     } else if (error.error === 'invalid_client') {
-      throw new Error('Google API credentials are not properly configured. Please check your setup.');
+      throw new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.');
     }
     throw error;
   }

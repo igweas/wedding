@@ -39,15 +39,25 @@ To enable Google Drive integration, you **MUST** set up Google API credentials:
 2. Restrict the API key to Google Drive API for security
 3. Copy the API Key
 
-#### Step 4: Update Configuration
-Edit `src/utils/googleApi.js` and replace the placeholder values:
+#### Step 4: Configure Environment Variables
+1. Create a `.env` file in the root directory of your project
+2. Add your Google API credentials:
 
-```javascript
-const CLIENT_ID = 'your-actual-client-id.apps.googleusercontent.com';
-const API_KEY = 'your-actual-api-key';
+```env
+VITE_GOOGLE_CLIENT_ID=your-actual-client-id.apps.googleusercontent.com
+VITE_GOOGLE_API_KEY=your-actual-api-key
 ```
 
-**⚠️ IMPORTANT**: The application will not work until you replace these placeholder values with your actual Google API credentials.
+**Example:**
+```env
+VITE_GOOGLE_CLIENT_ID=123456789-abcdefghijklmnop.apps.googleusercontent.com
+VITE_GOOGLE_API_KEY=AIzaSyABC123DEF456GHI789JKL012MNO345PQR
+```
+
+**⚠️ IMPORTANT**: 
+- The application will not work until you replace the placeholder values with your actual Google API credentials
+- Never commit your `.env` file to version control (it's already in `.gitignore`)
+- The `.env` file should be kept secure and not shared publicly
 
 ### Installation
 
@@ -64,6 +74,15 @@ npm run dev
 4. **Upload**: Guests can upload directly to organized Google Drive folders
 5. **View Gallery**: Browse uploaded content organized by groups
 
+## Environment Variables
+
+The application uses the following environment variables:
+
+- `VITE_GOOGLE_CLIENT_ID`: Your Google OAuth 2.0 Client ID
+- `VITE_GOOGLE_API_KEY`: Your Google API Key
+
+These must be prefixed with `VITE_` to be accessible in the Vite build process.
+
 ## Technologies
 
 - React 19
@@ -77,6 +96,7 @@ npm run dev
 - `src/components/` - React components
 - `src/utils/googleApi.js` - Google API integration
 - `src/EventAlbumApp.jsx` - Main application component
+- `.env` - Environment variables (not committed to git)
 
 ## Security Notes
 
@@ -84,14 +104,20 @@ npm run dev
 - Guests don't need accounts but uploads are organized automatically
 - Album creators maintain full control over their data
 - OAuth integration ensures secure authentication
+- API credentials are stored in environment variables, not in source code
 
 ## Troubleshooting
 
 ### Error 401: invalid_client
 This error occurs when Google API credentials are not properly configured. Make sure you:
-1. Have valid CLIENT_ID and API_KEY in `src/utils/googleApi.js`
+1. Have valid `VITE_GOOGLE_CLIENT_ID` and `VITE_GOOGLE_API_KEY` in your `.env` file
 2. Added your domain to authorized origins in Google Cloud Console
 3. Enabled the required APIs (Google Drive API, Google+ API)
+
+### Environment Variables Not Loading
+- Ensure your `.env` file is in the root directory (same level as `package.json`)
+- Environment variables must be prefixed with `VITE_` to be accessible in Vite
+- Restart the development server after adding/changing environment variables
 
 ### Upload Failures
 - Check that the user is properly authenticated
@@ -107,5 +133,14 @@ The app uses localStorage for album management and Google Drive for file storage
 When deploying to production:
 1. Update the authorized JavaScript origins in Google Cloud Console
 2. Replace localhost URLs with your production domain
-3. Consider implementing additional security measures
-4. Test the Google API integration thoroughly
+3. Set up environment variables in your hosting platform
+4. Consider implementing additional security measures
+5. Test the Google API integration thoroughly
+
+## Environment Variables in Production
+
+For production deployment, set these environment variables in your hosting platform:
+- `VITE_GOOGLE_CLIENT_ID`
+- `VITE_GOOGLE_API_KEY`
+
+Most hosting platforms (Vercel, Netlify, etc.) provide interfaces to set environment variables securely.

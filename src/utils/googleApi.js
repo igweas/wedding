@@ -73,14 +73,21 @@ export const signInWithGoogle = async () => {
     
     // Request access token using popup mode
     return new Promise((resolve, reject) => {
-      // Set up a timeout to detect popup blocking
+      let callbackExecuted = false;
+      
+      // Set up a timeout to detect popup blocking - increased timeout
       let timeoutId = setTimeout(() => {
-        reject(new Error('popup_blocked'));
-      }, 1000); // If no response within 1 second, likely blocked
+        if (!callbackExecuted) {
+          callbackExecuted = true;
+          reject(new Error('popup_blocked'));
+        }
+      }, 3000); // Increased to 3 seconds to allow for slower popup opening
       
       tokenClient.requestAccessToken({
         prompt: 'consent',
         callback: async (response) => {
+          if (callbackExecuted) return;
+          callbackExecuted = true;
           clearTimeout(timeoutId);
           
           if (response.error) {
@@ -131,18 +138,53 @@ export const signInWithGoogle = async () => {
           }
         },
         error_callback: (error) => {
+          if (callbackExecuted) return;
+          callbackExecuted = true;
           clearTimeout(timeoutId);
+          
           // Handle GSI library errors that don't go through the main callback
           if (error.type === 'popup_failed_to_open' || 
               error.message?.includes('popup') || 
               error.message?.includes('Failed to open popup') ||
-              error.message?.includes('blocked')) {
+              error.message?.includes('blocked') ||
+              error.message?.includes('Maybe blocked by the browser')) {
             reject(new Error('popup_blocked'));
           } else {
             reject(new Error(`Authentication error: ${error.message || error.type || 'Unknown error'}`));
           }
         }
       });
+      
+      // Additional check for immediate popup blocking detection
+      // Some browsers block popups synchronously
+      setTimeout(() => {
+        if (!callbackExecuted) {
+          // Check if the popup was blocked by trying to detect common popup blocking scenarios
+          try {
+            // This is a heuristic - if we haven't received any callback within a short time
+            // and no error callback was triggered, it's likely a popup block
+            const testPopup = window.open('', '_blank', 'width=1,height=1');
+            if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
+              // Popup was blocked
+              if (!callbackExecuted) {
+                callbackExecuted = true;
+                clearTimeout(timeoutId);
+                reject(new Error('popup_blocked'));
+              }
+            } else {
+              // Close the test popup
+              testPopup.close();
+            }
+          } catch (e) {
+            // If we can't even test for popup blocking, assume it's blocked
+            if (!callbackExecuted) {
+              callbackExecuted = true;
+              clearTimeout(timeoutId);
+              reject(new Error('popup_blocked'));
+            }
+          }
+        }
+      }, 500); // Check after 500ms
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);

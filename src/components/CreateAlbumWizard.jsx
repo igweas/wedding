@@ -142,7 +142,9 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
       } else if (error.message.includes('popup_closed_by_user')) {
         setError('Sign-in was cancelled. Please try again.')
       } else {
-        setError('Failed to connect to Google. This may be due to domain verification requirements. Please contact the developer.')
+        // For any other error that might be popup-related, show the alternative option
+        setShowPopupHelp(true)
+        setError('Failed to connect to Google. This may be due to popup blocking or domain verification requirements. Please try the alternative sign-in method below.')
       }
     } finally {
       setIsLoading(false)
@@ -401,17 +403,16 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
                         {isLoading ? 'Connecting...' : 'Sign in with Google (Popup)'}
                       </Button>
                       
-                      {showPopupHelp && (
-                        <Button
-                          onClick={handleGoogleConnectRedirect}
-                          disabled={isLoading}
-                          variant="outline"
-                          className="bg-gray-100 text-gray-900 hover:bg-gray-200 px-8 py-3 disabled:opacity-50 w-full border-gray-300"
-                        >
-                          <RefreshCwIcon className="w-5 h-5 mr-2" />
-                          Alternative Sign-in (Redirect)
-                        </Button>
-                      )}
+                      {/* Always show the alternative sign-in button for better UX */}
+                      <Button
+                        onClick={handleGoogleConnectRedirect}
+                        disabled={isLoading}
+                        variant="outline"
+                        className="bg-gray-100 text-gray-900 hover:bg-gray-200 px-8 py-3 disabled:opacity-50 w-full border-gray-300"
+                      >
+                        <RefreshCwIcon className="w-5 h-5 mr-2" />
+                        Alternative Sign-in (Redirect)
+                      </Button>
                     </div>
                   ) : (
                     <div className="bg-green-100 text-green-800 p-4 rounded-lg">

@@ -49,22 +49,11 @@ export const initializeGapi = async () => {
       });
     });
     
-    // Initialize Google Identity Services token client
+    // Initialize Google Identity Services token client with popup mode
     tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: CLIENT_ID,
       scope: SCOPES,
-      ux_mode: 'redirect',
-      callback: (response) => {
-        if (response.error) {
-          console.error('Token client error:', response.error);
-          return;
-        }
-        // Token received successfully
-        currentUser = {
-          ...currentUser,
-          accessToken: response.access_token
-        };
-      }
+      ux_mode: 'popup'
     });
     
     isInitialized = true;
@@ -82,51 +71,52 @@ export const signInWithGoogle = async () => {
       throw new Error('Google Auth not initialized properly');
     }
     
-    // Request access token using redirect mode
+    // Request access token using popup mode with direct callback
     return new Promise((resolve, reject) => {
-      tokenClient.callback = async (response) => {
-        if (response.error) {
-          if (response.error === 'popup_closed_by_user') {
-            reject(new Error('Sign-in was cancelled. Please try again.'));
-          } else if (response.error === 'invalid_client') {
-            reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
-          } else if (response.error === 'access_denied') {
-            reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
-          } else {
-            reject(new Error(`Authentication error: ${response.error}`));
-          }
-          return;
-        }
-        
-        try {
-          // Get user info using the access token
-          const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
-            headers: {
-              'Authorization': `Bearer ${response.access_token}`
+      tokenClient.requestAccessToken({
+        prompt: 'consent',
+        callback: async (response) => {
+          if (response.error) {
+            if (response.error === 'popup_closed_by_user') {
+              reject(new Error('Sign-in was cancelled. Please try again.'));
+            } else if (response.error === 'invalid_client') {
+              reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
+            } else if (response.error === 'access_denied') {
+              reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
+            } else {
+              reject(new Error(`Authentication error: ${response.error}`));
             }
-          });
-          
-          if (!userInfoResponse.ok) {
-            throw new Error('Failed to fetch user information');
+            return;
           }
           
-          const userInfo = await userInfoResponse.json();
-          
-          currentUser = {
-            id: userInfo.id,
-            name: userInfo.name,
-            email: userInfo.email,
-            imageUrl: userInfo.picture,
-            accessToken: response.access_token
-          };
-          
-          resolve(currentUser);
-        } catch (error) {
-          reject(error);
+          try {
+            // Get user info using the access token
+            const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+              headers: {
+                'Authorization': `Bearer ${response.access_token}`
+              }
+            });
+            
+            if (!userInfoResponse.ok) {
+              throw new Error('Failed to fetch user information');
+            }
+            
+            const userInfo = await userInfoResponse.json();
+            
+            currentUser = {
+              id: userInfo.id,
+              name: userInfo.name,
+              email: userInfo.email,
+              imageUrl: userInfo.picture,
+              accessToken: response.access_token
+            };
+            
+            resolve(currentUser);
+          } catch (error) {
+            reject(error);
+          }
         }
-      };
-      
-      tokenClient.requestAccessToken({ prompt: 'consent' });
+      });
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);

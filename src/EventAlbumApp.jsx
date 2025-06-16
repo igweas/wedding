@@ -9,6 +9,7 @@ import QRCode from 'qrcode';
 import GuestUploadPage from './components/GuestUploadPage';
 import GalleryPage from './components/GalleryPage';
 import GroupManagementPage from './components/GroupManagementPage';
+import CreateAlbumWizard from './components/CreateAlbumWizard';
 
 export default function EventAlbumApp() {
   const [albums, setAlbums] = useState([]);
@@ -17,7 +18,7 @@ export default function EventAlbumApp() {
   const [qrCodeUrl, setQrCodeUrl] = useState("");
   const [showQrDialog, setShowQrDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
-  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'upload', 'gallery', 'moderator', 'groups'
+  const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'upload', 'gallery', 'moderator', 'groups', 'create-wizard'
   const [currentAlbum, setCurrentAlbum] = useState(null);
 
   // Load albums from localStorage on component mount
@@ -35,7 +36,7 @@ export default function EventAlbumApp() {
             id: 1, 
             name: "John & Emma's Wedding", 
             date: "10th June 2025", 
-            shareUrl: "https://weduploader.com/album/john-emma-wedding",
+            shareUrl: "https://weduploader.com/upload/john-emma-wedding",
             groups: [
               { id: 1, name: "Pre Wedding", description: "Engagement and pre-wedding photos" },
               { id: 2, name: "Ceremony", description: "Wedding ceremony moments" },
@@ -53,7 +54,7 @@ export default function EventAlbumApp() {
           id: 1, 
           name: "John & Emma's Wedding", 
           date: "10th June 2025", 
-          shareUrl: "https://weduploader.com/album/john-emma-wedding",
+          shareUrl: "https://weduploader.com/upload/john-emma-wedding",
           groups: [
             { id: 1, name: "Pre Wedding", description: "Engagement and pre-wedding photos" },
             { id: 2, name: "Ceremony", description: "Wedding ceremony moments" },
@@ -93,6 +94,21 @@ export default function EventAlbumApp() {
       setCurrentAlbum(newAlbum);
       setCurrentView('groups');
     }
+  };
+
+  const startCreateWizard = () => {
+    setCurrentView('create-wizard');
+  };
+
+  const handleWizardComplete = (newAlbum) => {
+    const updatedAlbums = [...albums, newAlbum];
+    setAlbums(updatedAlbums);
+    setCurrentAlbum(newAlbum);
+    setCurrentView('groups');
+  };
+
+  const handleWizardCancel = () => {
+    setCurrentView('dashboard');
   };
 
   const generateQRCode = async (album) => {
@@ -160,6 +176,15 @@ export default function EventAlbumApp() {
     }
   };
 
+  if (currentView === 'create-wizard') {
+    return (
+      <CreateAlbumWizard 
+        onComplete={handleWizardComplete}
+        onCancel={handleWizardCancel}
+      />
+    );
+  }
+
   if (currentView === 'upload') {
     return (
       <GuestUploadPage 
@@ -215,9 +240,9 @@ export default function EventAlbumApp() {
                       className="flex-1 bg-white text-gray-900 border-gray-300"
                       value={newAlbumName}
                       onChange={(e) => setNewAlbumName(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && createAlbum()}
+                      onKeyPress={(e) => e.key === 'Enter' && startCreateWizard()}
                     />
-                    <Button onClick={createAlbum} className="bg-gray-900 text-white hover:bg-gray-800">Create</Button>
+                    <Button onClick={startCreateWizard} className="bg-gray-900 text-white hover:bg-gray-800">Create</Button>
                   </div>
                 </CardContent>
               </Card>

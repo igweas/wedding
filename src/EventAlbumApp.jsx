@@ -409,6 +409,43 @@ export default function EventAlbumApp() {
           {/* FAQs Tab */}
           <TabsContent value="faq">
             <div className="space-y-6">
+              {/* Get Started Section */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-6">
+                  <h2 className="text-lg font-semibold text-blue-800 mb-6">Get Started</h2>
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">Is it free for guests to upload?</h4>
+                      <p className="text-sm text-blue-700">Yes, guests do not need an account to upload content.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">How do I share my album?</h4>
+                      <p className="text-sm text-blue-700">Each album has a shareable URL and QR code for easy distribution via social, email, or print.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">Where do the files go?</h4>
+                      <p className="text-sm text-blue-700">All uploads go directly to your Google Drive album folder. You remain in full control of your data.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">Are there upload limits?</h4>
+                      <p className="text-sm text-blue-700">Uploads are only limited by your available Google Drive space (default is 15 GB).</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">Can I create multiple albums?</h4>
+                      <p className="text-sm text-blue-700">Absolutely. Use the dashboard to manage albums for different events separately.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">How does Google Drive integration work?</h4>
+                      <p className="text-sm text-blue-700">When you create an album, we create organized folders in your Google Drive. All guest uploads are automatically sorted into the appropriate group folders.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-blue-800 mb-2">What's the difference between public and private albums?</h4>
+                      <p className="text-sm text-blue-700">Public albums can be accessed by anyone with the link and allow guest uploads. Private albums are only accessible to the creator and don't allow guest uploads.</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card className="bg-white border-gray-200">
                 <CardContent className="p-6">
                   <h2 className="text-lg font-semibold text-gray-900 mb-6">Frequently Asked Questions</h2>

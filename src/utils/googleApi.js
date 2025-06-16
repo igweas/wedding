@@ -74,37 +74,30 @@ export const signInWithGoogle = async () => {
     // Request access token using popup mode
     return new Promise((resolve, reject) => {
       let callbackExecuted = false;
-      let popupBlocked = false;
       
-      // Set up a timeout to detect popup blocking - increased timeout
-      const timeoutId = setTimeout(() => {
-        if (!callbackExecuted) {
-          callbackExecuted = true;
-          popupBlocked = true;
-          reject(new Error('popup_blocked'));
-        }
-      }, 2000); // Increased timeout to 2 seconds
-      
+      // Test if popup can be opened by attempting to open a test popup
       try {
-        // Test if popup can be opened by attempting to open a test popup
         const testPopup = window.open('', '_blank', 'width=1,height=1');
         if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
           // Popup is blocked
-          clearTimeout(timeoutId);
-          callbackExecuted = true;
           reject(new Error('popup_blocked'));
           return;
         } else {
           // Close test popup immediately
           testPopup.close();
         }
-        
+      } catch (error) {
+        // If we can't even test for popup blocking, assume it's blocked
+        reject(new Error('popup_blocked'));
+        return;
+      }
+      
+      try {
         tokenClient.requestAccessToken({
           prompt: 'consent',
           callback: async (response) => {
-            if (callbackExecuted || popupBlocked) return;
+            if (callbackExecuted) return;
             callbackExecuted = true;
-            clearTimeout(timeoutId);
             
             if (response.error) {
               if (response.error === 'popup_closed_by_user') {
@@ -113,15 +106,12 @@ export const signInWithGoogle = async () => {
                 reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
               } else if (response.error === 'access_denied') {
                 reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
-              } else if (response.error === 'popup_blocked_by_browser') {
+              } else if (response.error === 'popup_blocked_by_browser' || 
+                        response.error.includes('popup') || 
+                        response.error.includes('blocked')) {
                 reject(new Error('popup_blocked'));
               } else {
-                // Check if this might be a popup blocking issue
-                if (response.error.includes('popup') || response.error.includes('blocked')) {
-                  reject(new Error('popup_blocked'));
-                } else {
-                  reject(new Error(`Authentication error: ${response.error}`));
-                }
+                reject(new Error(`Authentication error: ${response.error}`));
               }
               return;
             }
@@ -154,9 +144,8 @@ export const signInWithGoogle = async () => {
             }
           },
           error_callback: (error) => {
-            if (callbackExecuted || popupBlocked) return;
+            if (callbackExecuted) return;
             callbackExecuted = true;
-            clearTimeout(timeoutId);
             
             // Handle GSI library errors that don't go through the main callback
             if (error.type === 'popup_failed_to_open' || 
@@ -170,9 +159,8 @@ export const signInWithGoogle = async () => {
           }
         });
       } catch (error) {
-        if (!callbackExecuted && !popupBlocked) {
+        if (!callbackExecuted) {
           callbackExecuted = true;
-          clearTimeout(timeoutId);
           
           // Check if the error is related to popup blocking
           if (error.message?.includes('Failed to open popup') || 

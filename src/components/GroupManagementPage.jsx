@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -16,17 +16,12 @@ const defaultGroups = [
 ]
 
 export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
-  const [groups, setGroups] = useState(album.groups || [])
+  const groups = album.groups || []
   const [newGroupName, setNewGroupName] = useState('')
   const [newGroupDescription, setNewGroupDescription] = useState('')
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showDefaultGroupsDialog, setShowDefaultGroupsDialog] = useState(false)
   const [editingGroup, setEditingGroup] = useState(null)
-
-  // Update parent component whenever groups change
-  useEffect(() => {
-    onUpdateGroups(groups)
-  }, [groups, onUpdateGroups])
 
   const addGroup = () => {
     if (newGroupName.trim()) {
@@ -36,7 +31,7 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
         description: newGroupDescription.trim() || `Photos and videos for ${newGroupName.trim()}`
       }
       const updatedGroups = [...groups, newGroup]
-      setGroups(updatedGroups)
+      onUpdateGroups(updatedGroups)
       setNewGroupName('')
       setNewGroupDescription('')
       setShowAddDialog(false)
@@ -50,13 +45,13 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
       description: defaultGroup.description
     }
     const updatedGroups = [...groups, newGroup]
-    setGroups(updatedGroups)
+    onUpdateGroups(updatedGroups)
   }
 
   const removeGroup = (groupId) => {
     if (confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
       const updatedGroups = groups.filter(group => group.id !== groupId)
-      setGroups(updatedGroups)
+      onUpdateGroups(updatedGroups)
     }
   }
 
@@ -64,7 +59,7 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
     const updatedGroups = groups.map(group => 
       group.id === groupId ? { ...group, ...updatedGroup } : group
     )
-    setGroups(updatedGroups)
+    onUpdateGroups(updatedGroups)
     setEditingGroup(null)
   }
 
@@ -301,8 +296,8 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
+          </div>
+        </DialogContent>
       )}
     </div>
   )

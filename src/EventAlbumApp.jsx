@@ -4,7 +4,7 @@ import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./components/ui/tabs";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./components/ui/dialog";
-import { QrCodeIcon, Share2Icon, UploadCloudIcon, ExternalLinkIcon, CopyIcon, EyeIcon, TrashIcon, PlusIcon, ArrowLeftIcon } from "lucide-react";
+import { QrCodeIcon, Share2Icon, UploadCloudIcon, ExternalLinkIcon, CopyIcon, EyeIcon, TrashIcon, PlusIcon, ArrowLeftIcon, LockIcon, UnlockIcon } from "lucide-react";
 import QRCode from 'qrcode';
 import GuestUploadPage from './components/GuestUploadPage';
 import GalleryPage from './components/GalleryPage';
@@ -37,6 +37,7 @@ export default function EventAlbumApp() {
             name: "John & Emma's Wedding", 
             date: "10th June 2025", 
             shareUrl: "https://weduploader.com/upload/john-emma-wedding",
+            isPublic: true,
             groups: [
               { id: 1, name: "Pre Wedding", description: "Engagement and pre-wedding photos" },
               { id: 2, name: "Ceremony", description: "Wedding ceremony moments" },
@@ -55,6 +56,7 @@ export default function EventAlbumApp() {
           name: "John & Emma's Wedding", 
           date: "10th June 2025", 
           shareUrl: "https://weduploader.com/upload/john-emma-wedding",
+          isPublic: true,
           groups: [
             { id: 1, name: "Pre Wedding", description: "Engagement and pre-wedding photos" },
             { id: 2, name: "Ceremony", description: "Wedding ceremony moments" },
@@ -85,6 +87,7 @@ export default function EventAlbumApp() {
           year: 'numeric' 
         }),
         shareUrl: `https://weduploader.com/upload/${newAlbumName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+        isPublic: true,
         groups: []
       };
       const updatedAlbums = [...albums, newAlbum];
@@ -101,14 +104,27 @@ export default function EventAlbumApp() {
   };
 
   const handleWizardComplete = (newAlbum) => {
-    const updatedAlbums = [...albums, newAlbum];
+    // Ensure new album has isPublic property
+    const albumWithPrivacy = { ...newAlbum, isPublic: true };
+    const updatedAlbums = [...albums, albumWithPrivacy];
     setAlbums(updatedAlbums);
-    setCurrentAlbum(newAlbum);
+    setCurrentAlbum(albumWithPrivacy);
     setCurrentView('groups');
   };
 
   const handleWizardCancel = () => {
     setCurrentView('dashboard');
+  };
+
+  const toggleAlbumPrivacy = (albumId) => {
+    const updatedAlbums = albums.map(album => 
+      album.id === albumId ? { ...album, isPublic: !album.isPublic } : album
+    );
+    setAlbums(updatedAlbums);
+    // Update current album if it's the one being modified
+    if (currentAlbum && currentAlbum.id === albumId) {
+      setCurrentAlbum(prev => ({ ...prev, isPublic: !prev.isPublic }));
+    }
   };
 
   const generateQRCode = async (album) => {
@@ -258,7 +274,14 @@ export default function EventAlbumApp() {
                   <CardContent className="p-6">
                     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                       <div>
-                        <h3 className="text-lg font-medium text-gray-900">{album.name}</h3>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="text-lg font-medium text-gray-900">{album.name}</h3>
+                          {album.isPublic ? (
+                            <UnlockIcon className="h-4 w-4 text-green-600" title="Public - Anyone with link can access" />
+                          ) : (
+                            <LockIcon className="h-4 w-4 text-red-600" title="Private - Only creator can access" />
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500">{album.date}</p>
                         <p className="text-xs text-gray-400 mt-1">{album.groups?.length || 0} groups</p>
                         {album.googleAccount && (
@@ -266,13 +289,38 @@ export default function EventAlbumApp() {
                             Connected to: {album.googleAccount.email}
                           </p>
                         )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Status: {album.isPublic ? 'Public' : 'Private'}
+                        </p>
                       </div>
                       <div className="flex flex-wrap gap-3">
                         <Button 
                           variant="outline" 
                           size="sm"
+                          onClick={() => toggleAlbumPrivacy(album.id)}
+                          className={album.isPublic 
+                            ? "border-green-300 text-green-700 hover:bg-green-50" 
+                            : "border-red-300 text-red-700 hover:bg-red-50"
+                          }
+                        >
+                          {album.isPublic ? (
+                            <>
+                              <UnlockIcon className="mr-2 h-4 w-4" />
+                              Make Private
+                            </>
+                          ) : (
+                            <>
+                              <LockIcon className="mr-2 h-4 w-4" />
+                              Make Public
+                            </>
+                          )}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
                           onClick={() => generateQRCode(album)}
-                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                          disabled={!album.isPublic}
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                         >
                           <QrCodeIcon className="mr-2 h-4 w-4" />
                           QR Code
@@ -281,7 +329,8 @@ export default function EventAlbumApp() {
                           variant="outline" 
                           size="sm"
                           onClick={() => shareLink(album)}
-                          className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                          disabled={!album.isPublic}
+                          className="border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                         >
                           <Share2Icon className="mr-2 h-4 w-4" />
                           Share Link
@@ -316,7 +365,8 @@ export default function EventAlbumApp() {
                         <Button 
                           size="sm"
                           onClick={() => openUploadPage(album)}
-                          className="bg-gray-900 text-white hover:bg-gray-800"
+                          disabled={!album.isPublic}
+                          className="bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50"
                         >
                           <UploadCloudIcon className="mr-2 h-4 w-4" />
                           Upload
@@ -358,37 +408,138 @@ export default function EventAlbumApp() {
 
           {/* FAQs Tab */}
           <TabsContent value="faq">
-            <Card className="bg-white border-gray-200">
-              <CardContent className="p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-6">Frequently Asked Questions</h2>
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Is it free for guests to upload?</h4>
-                    <p className="text-sm text-gray-600">Yes, guests do not need an account to upload content.</p>
+            <div className="space-y-6">
+              <Card className="bg-white border-gray-200">
+                <CardContent className="p-6">
+                  <h2 className="text-lg font-semibold text-gray-900 mb-6">Frequently Asked Questions</h2>
+                  <div className="space-y-6">
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Is it free for guests to upload?</h4>
+                      <p className="text-sm text-gray-600">Yes, guests do not need an account to upload content.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">How do I share my album?</h4>
+                      <p className="text-sm text-gray-600">Each album has a shareable URL and QR code for easy distribution via social, email, or print.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Where do the files go?</h4>
+                      <p className="text-sm text-gray-600">All uploads go directly to your Google Drive album folder. You remain in full control of your data.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Are there upload limits?</h4>
+                      <p className="text-sm text-gray-600">Uploads are only limited by your available Google Drive space (default is 15 GB).</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">Can I create multiple albums?</h4>
+                      <p className="text-sm text-gray-600">Absolutely. Use the dashboard to manage albums for different events separately.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">How does Google Drive integration work?</h4>
+                      <p className="text-sm text-gray-600">When you create an album, we create organized folders in your Google Drive. All guest uploads are automatically sorted into the appropriate group folders.</p>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-2">What's the difference between public and private albums?</h4>
+                      <p className="text-sm text-gray-600">Public albums can be accessed by anyone with the link and allow guest uploads. Private albums are only accessible to the creator and don't allow guest uploads.</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">How do I share my album?</h4>
-                    <p className="text-sm text-gray-600">Each album has a shareable URL and QR code for easy distribution via social, email, or print.</p>
+                </CardContent>
+              </Card>
+
+              {/* Common Issues Section */}
+              <Card className="bg-amber-50 border-amber-200">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-amber-800 mb-4">Common Issues</h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-white p-4 rounded-lg border border-amber-200">
+                      <h4 className="font-medium text-amber-800 mb-2">Why did I receive a "fatal error" message when attempting an upload?</h4>
+                      <p className="text-sm text-amber-700">
+                        This error occurs when WedUploader's permissions to your Google Drive have been revoked. To quickly solve the issue, navigate to your dashboard, logout of WedUploader, and then log back in.
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border border-amber-200">
+                      <h4 className="font-medium text-amber-800 mb-2">I cannot get the picture I want to become the background image, why is that?</h4>
+                      <p className="text-sm text-amber-700">
+                        There is a 15 MB size limit to your custom background image. If you need help reducing the resolution of the image you would like to use please contact us.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Where do the files go?</h4>
-                    <p className="text-sm text-gray-600">All uploads go directly to your Google Drive album folder. You remain in full control of your data.</p>
+                </CardContent>
+              </Card>
+
+              {/* Gallery Questions Section */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-blue-800 mb-4">Gallery Questions</h3>
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="bg-white p-4 rounded-lg border border-blue-200">
+                      <h4 className="font-medium text-blue-800 mb-2">Is the gallery a subscription?</h4>
+                      <p className="text-sm text-blue-700">
+                        Nope, it's a one time payment.
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border border-blue-200">
+                      <h4 className="font-medium text-blue-800 mb-2">How long does the gallery remain active?</h4>
+                      <p className="text-sm text-blue-700">
+                        The gallery never expires but you'll have the option to mark an album as 'private'. If you no longer want for it to be public.
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border border-blue-200">
+                      <h4 className="font-medium text-blue-800 mb-2">Do I have to pay to enable the gallery for each of my WedUploader albums?</h4>
+                      <p className="text-sm text-blue-700">
+                        You only have to pay once and the gallery feature will be unlocked for all your WedUploader albums.
+                      </p>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border border-blue-200">
+                      <h4 className="font-medium text-blue-800 mb-2">I enabled the gallery but I don't see any photos?</h4>
+                      <p className="text-sm text-blue-700">
+                        When you enable the gallery you unlock the feature, however you will have to toggle your WedUploader album from 'private' to 'public' in order for the gallery to display on your WedUploader album page.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Are there upload limits?</h4>
-                    <p className="text-sm text-gray-600">Uploads are only limited by your available Google Drive space (default is 15 GB).</p>
+                </CardContent>
+              </Card>
+
+              {/* Google API Setup Issues */}
+              <Card className="bg-red-50 border-red-200">
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold text-red-800 mb-4">Google API Setup Issues</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium text-red-800 mb-2">Error 401: invalid_client</h4>
+                      <p className="text-sm text-red-700 mb-2">
+                        This error occurs when Google API credentials are not properly configured. Make sure you:
+                      </p>
+                      <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                        <li>Have valid <code>VITE_GOOGLE_CLIENT_ID</code> and <code>VITE_GOOGLE_API_KEY</code> in your <code>.env</code> file</li>
+                        <li>Added your domain to authorized origins in Google Cloud Console</li>
+                        <li>Enabled the required APIs (Google Drive API, Google+ API)</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-red-800 mb-2">Origin not registered error</h4>
+                      <p className="text-sm text-red-700 mb-2">
+                        If you see an error about "Not a valid origin for the client", you need to:
+                      </p>
+                      <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                        <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="underline">Google Cloud Console</a></li>
+                        <li>Navigate to "APIs & Services" → "Credentials"</li>
+                        <li>Edit your OAuth 2.0 Client ID</li>
+                        <li>Add your current domain to "Authorized JavaScript origins"</li>
+                        <li>Save the changes</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-red-800 mb-2">Environment Variables Not Loading</h4>
+                      <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                        <li>Ensure your <code>.env</code> file is in the root directory (same level as <code>package.json</code>)</li>
+                        <li>Environment variables must be prefixed with <code>VITE_</code> to be accessible in Vite</li>
+                        <li>Restart the development server after adding/changing environment variables</li>
+                      </ul>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Can I create multiple albums?</h4>
-                    <p className="text-sm text-gray-600">Absolutely. Use the dashboard to manage albums for different events separately.</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">How does Google Drive integration work?</h4>
-                    <p className="text-sm text-gray-600">When you create an album, we create organized folders in your Google Drive. All guest uploads are automatically sorted into the appropriate group folders.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
 

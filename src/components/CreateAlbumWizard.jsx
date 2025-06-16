@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, GoogleIcon, CalendarIcon, FolderIcon, UserIcon } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, FileIcon as GoogleIcon, CalendarIcon, FolderIcon, UserIcon } from 'lucide-react'
 
 const defaultGroups = [
   "Pre Wedding",

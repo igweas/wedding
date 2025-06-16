@@ -134,17 +134,15 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
       console.error('Google sign-in failed:', error)
       
       // Handle popup blocking specifically
-      if (error.message === 'popup_blocked' || error.message.includes('popup') || error.message.includes('blocked')) {
+      if (error.message === 'popup_blocked' || error.message === 'popup_closed_by_user') {
         setShowPopupHelp(true)
-        setError('Your browser blocked the sign-in popup. Please use the "Alternative Sign-in" button below, or allow popups for this site in your browser settings.')
-      } else if (error.message === 'popup_closed_by_user') {
-        setError('Sign-in was cancelled. Please try again.')
+        setError('The sign-in popup was blocked by your browser. Please allow popups for this site or try the alternative sign-in method below.')
       } else if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
         setError('This application requires domain verification to access Google services. In development mode, please ensure your domain is added to the Google Cloud Console authorized origins, or contact the developer for assistance.')
+      } else if (error.message.includes('popup_closed_by_user')) {
+        setError('Sign-in was cancelled. Please try again.')
       } else {
-        // For any other error that might be popup-related, show the alternative option
-        setShowPopupHelp(true)
-        setError('Failed to connect to Google. Please try the alternative sign-in method below.')
+        setError('Failed to connect to Google. This may be due to domain verification requirements. Please contact the developer.')
       }
     } finally {
       setIsLoading(false)
@@ -160,21 +158,7 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
       // The page will redirect, so we don't need to handle the response here
     } catch (error) {
       console.error('Google redirect sign-in failed:', error)
-      
-      // Handle popup blocking specifically for redirect method - check for popup/blocked keywords
-      if (error.message === 'popup_blocked' || 
-          error.message.includes('popup') || 
-          error.message.includes('blocked') ||
-          error.message.includes('Failed to open popup window')) {
-        setShowPopupHelp(true)
-        setError('Your browser blocked the Google sign-in popup. Please allow popups for this site in your browser settings and try again. You may also need to try a different browser or disable popup blockers temporarily.')
-      } else if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
-        setError('This application requires domain verification to access Google services. In development mode, please ensure your domain is added to the Google Cloud Console authorized origins, or contact the developer for assistance.')
-      } else {
-        // For any other error, also show popup help as it's likely popup-related
-        setShowPopupHelp(true)
-        setError('Failed to initiate Google sign-in. This may be due to browser security settings or popup blocking. Please ensure popups are allowed for this site and try again.')
-      }
+      setError('Failed to initiate Google sign-in. Please try again or contact support.')
       setIsLoading(false)
     }
   }
@@ -305,17 +289,11 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
             <div className="flex items-start">
               <AlertCircleIcon className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-blue-800 font-medium">Popup Blocked - Use Alternative Sign-in</p>
-                <p className="text-blue-700 text-sm mb-3">Your browser blocked the Google sign-in popup. This is common with popup blockers and browser security settings.</p>
+                <p className="text-blue-800 font-medium">Popup Blocked - Alternative Sign-in Available</p>
+                <p className="text-blue-700 text-sm mb-3">Your browser blocked the Google sign-in popup. Here are two solutions:</p>
                 <div className="space-y-2 text-sm text-blue-700">
-                  <p><strong>Quick Solution:</strong> Click the "Alternative Sign-in (Redirect)" button below - this will work even with popup blockers enabled.</p>
-                  <p><strong>Or fix popup blocking:</strong></p>
-                  <ul className="ml-4 list-disc space-y-1 text-xs">
-                    <li>Look for a popup blocker icon in your address bar and click "Allow"</li>
-                    <li>Add this site to your browser's popup exceptions</li>
-                    <li>Try a different browser (Chrome, Firefox, Safari)</li>
-                    <li>Temporarily disable ad blockers or popup blockers</li>
-                  </ul>
+                  <p><strong>Option 1:</strong> Allow popups for this site in your browser settings and try again</p>
+                  <p><strong>Option 2:</strong> Use the alternative sign-in method below (redirects to Google)</p>
                 </div>
               </div>
             </div>
@@ -423,21 +401,17 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
                         {isLoading ? 'Connecting...' : 'Sign in with Google (Popup)'}
                       </Button>
                       
-                      {/* Always show the alternative sign-in button for better UX */}
-                      <Button
-                        onClick={handleGoogleConnectRedirect}
-                        disabled={isLoading}
-                        variant="outline"
-                        className="bg-gray-100 text-gray-900 hover:bg-gray-200 px-8 py-3 disabled:opacity-50 w-full border-gray-300"
-                      >
-                        <RefreshCwIcon className="w-5 h-5 mr-2" />
-                        Alternative Sign-in (Redirect)
-                      </Button>
-                      
-                      <div className="text-xs text-gray-400 mt-2">
-                        <p>💡 If the popup method doesn't work, use the alternative sign-in method above.</p>
-                        <p>The redirect method works with all browsers and popup blockers.</p>
-                      </div>
+                      {showPopupHelp && (
+                        <Button
+                          onClick={handleGoogleConnectRedirect}
+                          disabled={isLoading}
+                          variant="outline"
+                          className="bg-gray-100 text-gray-900 hover:bg-gray-200 px-8 py-3 disabled:opacity-50 w-full border-gray-300"
+                        >
+                          <RefreshCwIcon className="w-5 h-5 mr-2" />
+                          Alternative Sign-in (Redirect)
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="bg-green-100 text-green-800 p-4 rounded-lg">

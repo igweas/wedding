@@ -32,10 +32,7 @@ To enable Google Drive integration, you **MUST** set up Google API credentials:
 5. Add authorized JavaScript origins:
    - `http://localhost:5173` (for development)
    - Your production domain (when deployed)
-6. **IMPORTANT**: Add authorized redirect URIs:
-   - `http://localhost:5173/` (for development - note the trailing slash)
-   - Your production domain with trailing slash (when deployed)
-7. Copy the Client ID
+6. Copy the Client ID
 
 #### Step 3: Create API Key
 1. In "Credentials", click "Create Credentials" → "API Key"
@@ -117,24 +114,6 @@ This error occurs when Google API credentials are not properly configured. Make 
 2. Added your domain to authorized origins in Google Cloud Console
 3. Enabled the required APIs (Google Drive API, Google+ API)
 
-### Google Sign-in Popup Blocked or Redirect Issues
-If you encounter popup blocking or redirect errors:
-
-1. **Browser Configuration**: 
-   - Allow pop-ups for your application domain (`http://localhost:5173`)
-   - Look for a pop-up blocker icon in your browser's address bar and allow pop-ups
-   - Temporarily disable ad-blockers or try a different browser (Chrome, Firefox, Safari)
-
-2. **Google Cloud Console Redirect URI Configuration**:
-   - Go to your Google Cloud Console project
-   - Navigate to 'APIs & Services' → 'Credentials'
-   - Edit your 'OAuth 2.0 Client IDs' (Web application type)
-   - Ensure `http://localhost:5173/` is listed under 'Authorized redirect URIs' (note the trailing slash)
-   - For production, add your production domain with trailing slash
-   - Save the changes
-
-3. **Restart Application**: After making changes in Google Cloud Console, restart your development server (`npm run dev`)
-
 ### Environment Variables Not Loading
 - Ensure your `.env` file is in the root directory (same level as `package.json`)
 - Environment variables must be prefixed with `VITE_` to be accessible in Vite
@@ -153,11 +132,10 @@ The app uses localStorage for album management and Google Drive for file storage
 
 When deploying to production:
 1. Update the authorized JavaScript origins in Google Cloud Console
-2. **Update the authorized redirect URIs** with your production domain (including trailing slash)
-3. Replace localhost URLs with your production domain
-4. Set up environment variables in your hosting platform
-5. Consider implementing additional security measures
-6. Test the Google API integration thoroughly
+2. Replace localhost URLs with your production domain
+3. Set up environment variables in your hosting platform
+4. Consider implementing additional security measures
+5. Test the Google API integration thoroughly
 
 ## Environment Variables in Production
 

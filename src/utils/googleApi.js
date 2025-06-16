@@ -63,20 +63,6 @@ export const initializeGapi = async () => {
   }
 };
 
-// Enhanced popup blocking detection
-const testPopupBlocking = () => {
-  try {
-    const testPopup = window.open('', '_blank', 'width=1,height=1,left=9999,top=9999');
-    if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
-      return true; // Popup blocked
-    }
-    testPopup.close();
-    return false; // Popup allowed
-  } catch (e) {
-    return true; // Assume blocked if we can't test
-  }
-};
-
 export const signInWithGoogle = async () => {
   try {
     await initializeGapi();
@@ -85,42 +71,17 @@ export const signInWithGoogle = async () => {
       throw new Error('Google Auth not initialized properly');
     }
     
-    // Pre-check for popup blocking
-    if (testPopupBlocking()) {
-      throw new Error('popup_blocked');
-    }
-    
     // Request access token using popup mode
     return new Promise((resolve, reject) => {
-      let callbackExecuted = false;
-      let popupCheckInterval = null;
-      
-      // Set up a timeout to detect popup blocking - increased timeout
+      // Set up a timeout to detect popup blocking
       let timeoutId = setTimeout(() => {
-        if (!callbackExecuted) {
-          callbackExecuted = true;
-          if (popupCheckInterval) clearInterval(popupCheckInterval);
-          reject(new Error('popup_blocked'));
-        }
-      }, 5000); // Increased to 5 seconds
-      
-      // Monitor for popup blocking during the process
-      popupCheckInterval = setInterval(() => {
-        if (testPopupBlocking() && !callbackExecuted) {
-          callbackExecuted = true;
-          clearTimeout(timeoutId);
-          clearInterval(popupCheckInterval);
-          reject(new Error('popup_blocked'));
-        }
-      }, 1000);
+        reject(new Error('popup_blocked'));
+      }, 1000); // 1 second timeout for popup to appear
       
       tokenClient.requestAccessToken({
         prompt: 'consent',
         callback: async (response) => {
-          if (callbackExecuted) return;
-          callbackExecuted = true;
           clearTimeout(timeoutId);
-          if (popupCheckInterval) clearInterval(popupCheckInterval);
           
           if (response.error) {
             if (response.error === 'popup_closed_by_user') {
@@ -129,7 +90,7 @@ export const signInWithGoogle = async () => {
               reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
             } else if (response.error === 'access_denied') {
               reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
-            } else if (response.error === 'popup_blocked_by_browser' || response.error.includes('popup')) {
+            } else if (response.error === 'popup_blocked_by_browser') {
               reject(new Error('popup_blocked'));
             } else {
               // Check if this might be a popup blocking issue
@@ -170,32 +131,28 @@ export const signInWithGoogle = async () => {
           }
         },
         error_callback: (error) => {
-          if (callbackExecuted) return;
-          callbackExecuted = true;
           clearTimeout(timeoutId);
-          if (popupCheckInterval) clearInterval(popupCheckInterval);
-          
           // Handle GSI library errors that don't go through the main callback
-          if (error.type === 'popup_failed_to_open' || 
-              error.message?.includes('popup') || 
-              error.message?.includes('Failed to open popup') ||
-              error.message?.includes('blocked') ||
-              error.message?.includes('Maybe blocked by the browser')) {
+          if (error.type === 'popup_failed_to_open' || error.message?.includes('popup')) {
             reject(new Error('popup_blocked'));
           } else {
             reject(new Error(`Authentication error: ${error.message || error.type || 'Unknown error'}`));
           }
         }
       });
+      
+      // Additional check: if the tokenClient.requestAccessToken doesn't trigger any callback
+      // within a reasonable time, assume popup was blocked
+      setTimeout(() => {
+        reject(new Error('popup_blocked'));
+      }, 2000);
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);
-    // Enhanced popup blocking detection
+    // Check if the error might be related to popup blocking
     if (error.message?.includes('Failed to open popup') || 
         error.message?.includes('popup') || 
-        error.message?.includes('blocked') ||
-        error.message?.includes('Maybe blocked by the browser') ||
-        error.message === 'popup_blocked') {
+        error.message?.includes('blocked')) {
       throw new Error('popup_blocked');
     }
     throw error;

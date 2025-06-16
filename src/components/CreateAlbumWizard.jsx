@@ -107,6 +107,12 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
         googleAccount: user,
         isGoogleConnected: true
       }))
+      
+      // Automatically proceed to next step after successful authentication
+      setTimeout(() => {
+        setCurrentStep(3)
+      }, 1000)
+      
     } catch (error) {
       console.error('Google sign-in failed:', error)
       
@@ -132,6 +138,8 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
         isGoogleConnected: false,
         driveStructure: null
       }))
+      // Go back to step 2 after disconnecting
+      setCurrentStep(2)
     } catch (error) {
       console.error('Google sign-out failed:', error)
     }

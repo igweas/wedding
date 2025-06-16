@@ -167,6 +167,10 @@ export default function EventAlbumApp() {
       album.id === albumId ? { ...album, groups } : album
     );
     setAlbums(updatedAlbums);
+    // Update current album if it's the one being modified
+    if (currentAlbum && currentAlbum.id === albumId) {
+      setCurrentAlbum(prev => ({ ...prev, groups }));
+    }
   };
 
   const deleteAlbum = (albumId) => {
@@ -189,6 +193,7 @@ export default function EventAlbumApp() {
     return (
       <GuestUploadPage 
         albumName={currentAlbum.name}
+        album={currentAlbum}
         onBack={() => openGallery(currentAlbum)}
       />
     );
@@ -256,6 +261,11 @@ export default function EventAlbumApp() {
                         <h3 className="text-lg font-medium text-gray-900">{album.name}</h3>
                         <p className="text-sm text-gray-500">{album.date}</p>
                         <p className="text-xs text-gray-400 mt-1">{album.groups?.length || 0} groups</p>
+                        {album.googleAccount && (
+                          <p className="text-xs text-green-600 mt-1">
+                            Connected to: {album.googleAccount.email}
+                          </p>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-3">
                         <Button 
@@ -326,20 +336,18 @@ export default function EventAlbumApp() {
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Storage Usage</h2>
                 <div className="space-y-2">
                   <p className="text-sm text-gray-700">
-                    Currently using <span className="font-semibold">13.2 GB</span> of 15 GB.
+                    Storage is managed through your connected Google Drive accounts.
                   </p>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-red-500 h-2 rounded-full" style={{ width: '88%' }}></div>
-                  </div>
-                  <p className="text-sm text-red-600">
-                    You are nearing your storage limit.{" "}
+                  <p className="text-sm text-gray-600">
+                    Each album uses the Google Drive storage of the account that created it.
+                    Check your Google Drive storage at{" "}
                     <a 
                       href="https://one.google.com/storage" 
                       target="_blank" 
                       rel="noopener noreferrer" 
                       className="text-blue-600 underline hover:text-blue-800"
                     >
-                      Upgrade here
+                      Google One
                     </a>
                     .
                   </p>
@@ -373,6 +381,10 @@ export default function EventAlbumApp() {
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Can I create multiple albums?</h4>
                     <p className="text-sm text-gray-600">Absolutely. Use the dashboard to manage albums for different events separately.</p>
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-2">How does Google Drive integration work?</h4>
+                    <p className="text-sm text-gray-600">When you create an album, we create organized folders in your Google Drive. All guest uploads are automatically sorted into the appropriate group folders.</p>
                   </div>
                 </div>
               </CardContent>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
@@ -23,6 +23,11 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
   const [showDefaultGroupsDialog, setShowDefaultGroupsDialog] = useState(false)
   const [editingGroup, setEditingGroup] = useState(null)
 
+  // Update parent component whenever groups change
+  useEffect(() => {
+    onUpdateGroups(groups)
+  }, [groups, onUpdateGroups])
+
   const addGroup = () => {
     if (newGroupName.trim()) {
       const newGroup = {
@@ -32,7 +37,6 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
       }
       const updatedGroups = [...groups, newGroup]
       setGroups(updatedGroups)
-      onUpdateGroups(updatedGroups)
       setNewGroupName('')
       setNewGroupDescription('')
       setShowAddDialog(false)
@@ -47,13 +51,13 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
     }
     const updatedGroups = [...groups, newGroup]
     setGroups(updatedGroups)
-    onUpdateGroups(updatedGroups)
   }
 
   const removeGroup = (groupId) => {
-    const updatedGroups = groups.filter(group => group.id !== groupId)
-    setGroups(updatedGroups)
-    onUpdateGroups(updatedGroups)
+    if (confirm('Are you sure you want to delete this group? This action cannot be undone.')) {
+      const updatedGroups = groups.filter(group => group.id !== groupId)
+      setGroups(updatedGroups)
+    }
   }
 
   const updateGroup = (groupId, updatedGroup) => {
@@ -61,7 +65,6 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
       group.id === groupId ? { ...group, ...updatedGroup } : group
     )
     setGroups(updatedGroups)
-    onUpdateGroups(updatedGroups)
     setEditingGroup(null)
   }
 
@@ -89,14 +92,16 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
             </div>
           </div>
           <div className="flex gap-3">
-            <Button 
-              variant="outline"
-              onClick={() => setShowDefaultGroupsDialog(true)}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Add Common Groups
-            </Button>
+            {availableDefaultGroups.length > 0 && (
+              <Button 
+                variant="outline"
+                onClick={() => setShowDefaultGroupsDialog(true)}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <PlusIcon className="mr-2 h-4 w-4" />
+                Add Common Groups
+              </Button>
+            )}
             <Button 
               onClick={() => setShowAddDialog(true)}
               className="bg-gray-900 text-white hover:bg-gray-800"
@@ -115,14 +120,16 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
             <h3 className="text-lg font-medium text-gray-900 mb-2">No groups created yet</h3>
             <p className="text-gray-600 mb-6">Create groups to organize your event photos and videos</p>
             <div className="flex justify-center gap-3">
-              <Button 
-                variant="outline"
-                onClick={() => setShowDefaultGroupsDialog(true)}
-                className="border-gray-300 text-gray-700 hover:bg-gray-50"
-              >
-                <PlusIcon className="mr-2 h-4 w-4" />
-                Add Common Groups
-              </Button>
+              {availableDefaultGroups.length > 0 && (
+                <Button 
+                  variant="outline"
+                  onClick={() => setShowDefaultGroupsDialog(true)}
+                  className="border-gray-300 text-gray-700 hover:bg-gray-50"
+                >
+                  <PlusIcon className="mr-2 h-4 w-4" />
+                  Add Common Groups
+                </Button>
+              )}
               <Button 
                 onClick={() => setShowAddDialog(true)}
                 className="bg-gray-900 text-white hover:bg-gray-800"
@@ -185,6 +192,7 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
                 onChange={(e) => setNewGroupName(e.target.value)}
                 placeholder="e.g., Bridal Party"
                 className="bg-white text-gray-900 border-gray-300"
+                onKeyPress={(e) => e.key === 'Enter' && addGroup()}
               />
             </div>
             <div>
@@ -207,7 +215,7 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
               <Button 
                 onClick={addGroup}
                 disabled={!newGroupName.trim()}
-                className="bg-gray-900 text-white hover:bg-gray-800"
+                className="bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create Group
               </Button>
@@ -217,16 +225,14 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
       </Dialog>
 
       {/* Add Default Groups Dialog */}
-      <Dialog open={showDefaultGroupsDialog} onOpenChange={setShowDefaultGroupsDialog}>
-        <DialogContent className="max-w-2xl bg-white">
-          <DialogHeader>
-            <DialogTitle className="text-gray-900">Add Common Event Groups</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 max-h-96 overflow-y-auto">
-            {availableDefaultGroups.length === 0 ? (
-              <p className="text-gray-600 text-center py-4">All common groups have been added to your album.</p>
-            ) : (
-              availableDefaultGroups.map((group, index) => (
+      {availableDefaultGroups.length > 0 && (
+        <Dialog open={showDefaultGroupsDialog} onOpenChange={setShowDefaultGroupsDialog}>
+          <DialogContent className="max-w-2xl bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-gray-900">Add Common Event Groups</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {availableDefaultGroups.map((group, index) => (
                 <div key={index} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                   <div>
                     <h4 className="font-medium text-gray-900">{group.name}</h4>
@@ -240,20 +246,20 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
                     Add
                   </Button>
                 </div>
-              ))
-            )}
-          </div>
-          <div className="flex justify-end">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDefaultGroupsDialog(false)}
-              className="border-gray-300 text-gray-700 hover:bg-gray-50"
-            >
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+              ))}
+            </div>
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDefaultGroupsDialog(false)}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* Edit Group Dialog */}
       {editingGroup && (

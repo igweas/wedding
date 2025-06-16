@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Button } from './ui/button'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from './ui/dropdown'
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from './ui/dialog'
-import { ArrowUpIcon, ArrowDownIcon, ImageIcon, VideoIcon, TrashIcon, FilterIcon } from 'lucide-react'
+import { ArrowUpIcon, ArrowDownIcon, ImageIcon, VideoIcon, TrashIcon, FilterIcon, ArrowLeftIcon } from 'lucide-react'
 
 // Sample images for demonstration
 const sampleImages = [
@@ -57,34 +57,38 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
       {/* Header */}
       <div className="bg-white border-b border-gray-200 p-6">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {isModerator ? `Delete from Gallery: ${albumName}` : 'Gallery'}
-            </h1>
-            {isModerator && (
-              <div className="mt-2 space-y-1 text-sm text-gray-600">
-                <p><span className="text-red-600 font-medium">Caution:</span> This page provides any user the ability to remove an image from Event Gallery Upload. It is intended to provide guests and the wedding couple the capability to correct an accidental upload or remove from public view any images deemed inappropriate by any user.</p>
-                <p><span className="text-amber-600 font-medium">Note:</span> When an image is removed, it is hidden from public view on Event Gallery Upload. However, the file remains in the wedding couple's Google Drive and the wedding couple has the capability to re-instate images at their discretion.</p>
-                <p><span className="text-blue-600 font-medium">Instructions:</span> Click the red trash can button on the image you would like to remove and then confirm your choice on the pop-up.</p>
-              </div>
-            )}
+          <div className="flex items-center gap-4">
+            <Button 
+              variant="outline" 
+              onClick={onBack}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              <ArrowLeftIcon className="mr-2 h-4 w-4" />
+              {isModerator ? 'Return to Upload Gallery' : 'Back to My Albums'}
+            </Button>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {isModerator ? `Delete from Gallery: ${albumName}` : `Gallery: ${albumName}`}
+              </h1>
+              {isModerator && (
+                <div className="mt-2 space-y-1 text-sm text-gray-600">
+                  <p><span className="text-red-600 font-medium">Caution:</span> This page provides any user the ability to remove an image from Event Gallery Upload. It is intended to provide guests and the wedding couple the capability to correct an accidental upload or remove from public view any images deemed inappropriate by any user.</p>
+                  <p><span className="text-amber-600 font-medium">Note:</span> When an image is removed, it is hidden from public view on Event Gallery Upload. However, the file remains in the wedding couple's Google Drive and the wedding couple has the capability to re-instate images at their discretion.</p>
+                  <p><span className="text-blue-600 font-medium">Instructions:</span> Click the red trash can button on the image you would like to remove and then confirm your choice on the pop-up.</p>
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {isModerator && (
               <Button 
                 variant="outline" 
-                onClick={onBack}
-                className="text-amber-600 border-amber-600 hover:bg-amber-600 hover:text-white"
+                className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
               >
-                Return to Upload Gallery
+                <TrashIcon className="mr-2 h-4 w-4" />
+                Need to Remove File?
               </Button>
             )}
-            <Button 
-              variant="outline" 
-              className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
-            >
-              Need to Remove File?
-            </Button>
             
             {/* Sort/Filter Dropdown */}
             <DropdownMenu>
@@ -235,9 +239,9 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
             <DialogTitle className="text-gray-900">Confirm Removal</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-gray-700">Are you sure you want to remove this image from the gallery?</p>
+            <p className="text-gray-700">Are you sure you want to remove this {imageToRemove?.type === 'video' ? 'video' : 'image'} from the gallery?</p>
             <p className="text-sm text-gray-500">
-              This will hide the image from public view, but it will remain in the couple's Google Drive.
+              This will hide the {imageToRemove?.type === 'video' ? 'video' : 'image'} from public view, but it will remain in the couple's Google Drive.
             </p>
             <div className="flex justify-end gap-3">
               <Button 
@@ -252,7 +256,7 @@ export default function GalleryPage({ albumName, onBack, isModerator = false }) 
                 onClick={() => handleRemoveImage(imageToRemove.id)}
                 className="bg-red-600 text-white hover:bg-red-700"
               >
-                Remove Image
+                Remove {imageToRemove?.type === 'video' ? 'Video' : 'Image'}
               </Button>
             </div>
           </div>

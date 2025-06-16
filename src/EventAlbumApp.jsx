@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "./components/ui/card";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
@@ -11,19 +11,7 @@ import GalleryPage from './components/GalleryPage';
 import GroupManagementPage from './components/GroupManagementPage';
 
 export default function EventAlbumApp() {
-  const [albums, setAlbums] = useState([
-    { 
-      id: 1, 
-      name: "John & Emma's Wedding", 
-      date: "10th June 2025", 
-      shareUrl: "https://weduploader.com/album/john-emma-wedding",
-      groups: [
-        { id: 1, name: "Pre Wedding", description: "Engagement and pre-wedding photos" },
-        { id: 2, name: "Ceremony", description: "Wedding ceremony moments" },
-        { id: 3, name: "Reception", description: "Reception and party photos" }
-      ]
-    }
-  ]);
+  const [albums, setAlbums] = useState([]);
   const [newAlbumName, setNewAlbumName] = useState("");
   const [selectedAlbum, setSelectedAlbum] = useState(null);
   const [qrCodeUrl, setQrCodeUrl] = useState("");
@@ -32,20 +20,74 @@ export default function EventAlbumApp() {
   const [currentView, setCurrentView] = useState('dashboard'); // 'dashboard', 'upload', 'gallery', 'moderator', 'groups'
   const [currentAlbum, setCurrentAlbum] = useState(null);
 
+  // Load albums from localStorage on component mount
+  useEffect(() => {
+    const savedAlbums = localStorage.getItem('eventGalleryAlbums');
+    if (savedAlbums) {
+      try {
+        const parsedAlbums = JSON.parse(savedAlbums);
+        setAlbums(parsedAlbums);
+      } catch (error) {
+        console.error('Error loading albums from localStorage:', error);
+        // Initialize with default album if localStorage is corrupted
+        const defaultAlbums = [
+          { 
+            id: 1, 
+            name: "John & Emma's Wedding", 
+            date: "10th June 2025", 
+            shareUrl: "https://weduploader.com/album/john-emma-wedding",
+            groups: [
+              { id: 1, name: "Pre Wedding", description: "Engagement and pre-wedding photos" },
+              { id: 2, name: "Ceremony", description: "Wedding ceremony moments" },
+              { id: 3, name: "Reception", description: "Reception and party photos" }
+            ]
+          }
+        ];
+        setAlbums(defaultAlbums);
+        localStorage.setItem('eventGalleryAlbums', JSON.stringify(defaultAlbums));
+      }
+    } else {
+      // Initialize with default album if no data exists
+      const defaultAlbums = [
+        { 
+          id: 1, 
+          name: "John & Emma's Wedding", 
+          date: "10th June 2025", 
+          shareUrl: "https://weduploader.com/album/john-emma-wedding",
+          groups: [
+            { id: 1, name: "Pre Wedding", description: "Engagement and pre-wedding photos" },
+            { id: 2, name: "Ceremony", description: "Wedding ceremony moments" },
+            { id: 3, name: "Reception", description: "Reception and party photos" }
+          ]
+        }
+      ];
+      setAlbums(defaultAlbums);
+      localStorage.setItem('eventGalleryAlbums', JSON.stringify(defaultAlbums));
+    }
+  }, []);
+
+  // Save albums to localStorage whenever albums change
+  useEffect(() => {
+    if (albums.length > 0) {
+      localStorage.setItem('eventGalleryAlbums', JSON.stringify(albums));
+    }
+  }, [albums]);
+
   const createAlbum = () => {
     if (newAlbumName.trim()) {
       const newAlbum = {
         id: Date.now(),
-        name: newAlbumName,
+        name: newAlbumName.trim(),
         date: new Date().toLocaleDateString('en-GB', { 
           day: 'numeric', 
           month: 'long', 
           year: 'numeric' 
         }),
-        shareUrl: `https://weduploader.com/album/${newAlbumName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
+        shareUrl: `https://weduploader.com/upload/${newAlbumName.toLowerCase().replace(/[^a-z0-9]/g, '-')}`,
         groups: []
       };
-      setAlbums([...albums, newAlbum]);
+      const updatedAlbums = [...albums, newAlbum];
+      setAlbums(updatedAlbums);
       setNewAlbumName("");
       // Navigate to group management for the new album
       setCurrentAlbum(newAlbum);
@@ -55,7 +97,9 @@ export default function EventAlbumApp() {
 
   const generateQRCode = async (album) => {
     try {
-      const qrDataUrl = await QRCode.toDataURL(album.shareUrl, {
+      // Generate QR code for the upload page URL
+      const uploadUrl = album.shareUrl;
+      const qrDataUrl = await QRCode.toDataURL(uploadUrl, {
         width: 256,
         margin: 2,
         color: {
@@ -103,9 +147,17 @@ export default function EventAlbumApp() {
   };
 
   const updateAlbumGroups = (albumId, groups) => {
-    setAlbums(prev => prev.map(album => 
+    const updatedAlbums = albums.map(album => 
       album.id === albumId ? { ...album, groups } : album
-    ));
+    );
+    setAlbums(updatedAlbums);
+  };
+
+  const deleteAlbum = (albumId) => {
+    if (confirm('Are you sure you want to delete this album? This action cannot be undone.')) {
+      const updatedAlbums = albums.filter(album => album.id !== albumId);
+      setAlbums(updatedAlbums);
+    }
   };
 
   if (currentView === 'upload') {

@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent } from './ui/card'
-import { UploadCloudIcon, ImageIcon, VideoIcon } from 'lucide-react'
+import { UploadCloudIcon, ImageIcon, VideoIcon, XIcon } from 'lucide-react'
 
 export default function GuestUploadPage({ albumName, onBack }) {
   const [selectedFiles, setSelectedFiles] = useState([])
@@ -43,6 +43,10 @@ export default function GuestUploadPage({ albumName, onBack }) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
+  const triggerFileInput = () => {
+    document.getElementById('file-upload').click()
+  }
+
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -77,18 +81,13 @@ export default function GuestUploadPage({ albumName, onBack }) {
                 className="hidden"
                 id="file-upload"
               />
-              <label htmlFor="file-upload">
-                <Button 
-                  variant="outline" 
-                  className="bg-gray-900 text-white hover:bg-gray-800 px-8 py-3 text-lg"
-                  asChild
-                >
-                  <span>
-                    <UploadCloudIcon className="mr-2 h-5 w-5" />
-                    BROWSE FILES
-                  </span>
-                </Button>
-              </label>
+              <Button 
+                onClick={triggerFileInput}
+                className="bg-gray-900 text-white hover:bg-gray-800 px-8 py-3 text-lg"
+              >
+                <UploadCloudIcon className="mr-2 h-5 w-5" />
+                BROWSE FILES
+              </Button>
             </div>
 
             {/* Selected Files */}
@@ -113,7 +112,7 @@ export default function GuestUploadPage({ albumName, onBack }) {
                         onClick={() => removeFile(index)}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
-                        Remove
+                        <XIcon className="h-4 w-4" />
                       </Button>
                     </div>
                   ))}
@@ -163,7 +162,7 @@ export default function GuestUploadPage({ albumName, onBack }) {
               <Button
                 onClick={handleUpload}
                 disabled={selectedFiles.length === 0 || isUploading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isUploading ? 'Uploading...' : 'Upload Files'}
               </Button>

@@ -160,7 +160,16 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
       // The page will redirect, so we don't need to handle the response here
     } catch (error) {
       console.error('Google redirect sign-in failed:', error)
-      setError('Failed to initiate Google sign-in. Please try again or contact support.')
+      
+      // Handle popup blocking specifically for redirect method
+      if (error.message === 'popup_blocked' || error.message.includes('popup_blocked')) {
+        setShowPopupHelp(true)
+        setError('Both sign-in methods are being blocked by your browser. Please allow popups for this site in your browser settings and try again. You may also need to try a different browser or disable popup blockers temporarily.')
+      } else if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
+        setError('This application requires domain verification to access Google services. In development mode, please ensure your domain is added to the Google Cloud Console authorized origins, or contact the developer for assistance.')
+      } else {
+        setError('Failed to initiate Google sign-in. This may be due to browser security settings or popup blocking. Please ensure popups are allowed for this site and try again.')
+      }
       setIsLoading(false)
     }
   }
@@ -291,11 +300,16 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
             <div className="flex items-start">
               <AlertCircleIcon className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-blue-800 font-medium">Popup Blocked - Alternative Sign-in Available</p>
-                <p className="text-blue-700 text-sm mb-3">Your browser blocked the Google sign-in popup. Here are two solutions:</p>
+                <p className="text-blue-800 font-medium">Browser Popup Blocking Detected</p>
+                <p className="text-blue-700 text-sm mb-3">Your browser is blocking popups required for Google sign-in. Here are solutions to try:</p>
                 <div className="space-y-2 text-sm text-blue-700">
-                  <p><strong>Option 1:</strong> Allow popups for this site in your browser settings and try again</p>
-                  <p><strong>Option 2:</strong> Use the alternative sign-in method below (redirects to Google)</p>
+                  <p><strong>Option 1:</strong> Allow popups for this site in your browser settings:</p>
+                  <ul className="ml-4 list-disc space-y-1 text-xs">
+                    <li>Look for a popup blocker icon in your address bar and click "Allow"</li>
+                    <li>Or go to browser settings and add this site to popup exceptions</li>
+                  </ul>
+                  <p><strong>Option 2:</strong> Try a different browser (Chrome, Firefox, Safari)</p>
+                  <p><strong>Option 3:</strong> Temporarily disable popup blockers or ad blockers</p>
                 </div>
               </div>
             </div>

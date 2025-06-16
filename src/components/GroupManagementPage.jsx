@@ -296,8 +296,8 @@ export default function GroupManagementPage({ album, onBack, onUpdateGroups }) {
                 </Button>
               </div>
             </div>
-          </div>
-        </DialogContent>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

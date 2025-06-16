@@ -63,6 +63,20 @@ export const initializeGapi = async () => {
   }
 };
 
+// Enhanced popup blocking detection
+const testPopupBlocking = () => {
+  try {
+    const testPopup = window.open('', '_blank', 'width=1,height=1,left=9999,top=9999');
+    if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
+      return true; // Popup blocked
+    }
+    testPopup.close();
+    return false; // Popup allowed
+  } catch (e) {
+    return true; // Assume blocked if we can't test
+  }
+};
+
 export const signInWithGoogle = async () => {
   try {
     await initializeGapi();
@@ -71,17 +85,34 @@ export const signInWithGoogle = async () => {
       throw new Error('Google Auth not initialized properly');
     }
     
+    // Pre-check for popup blocking
+    if (testPopupBlocking()) {
+      throw new Error('popup_blocked');
+    }
+    
     // Request access token using popup mode
     return new Promise((resolve, reject) => {
       let callbackExecuted = false;
+      let popupCheckInterval = null;
       
       // Set up a timeout to detect popup blocking - increased timeout
       let timeoutId = setTimeout(() => {
         if (!callbackExecuted) {
           callbackExecuted = true;
+          if (popupCheckInterval) clearInterval(popupCheckInterval);
           reject(new Error('popup_blocked'));
         }
-      }, 3000); // Increased to 3 seconds to allow for slower popup opening
+      }, 5000); // Increased to 5 seconds
+      
+      // Monitor for popup blocking during the process
+      popupCheckInterval = setInterval(() => {
+        if (testPopupBlocking() && !callbackExecuted) {
+          callbackExecuted = true;
+          clearTimeout(timeoutId);
+          clearInterval(popupCheckInterval);
+          reject(new Error('popup_blocked'));
+        }
+      }, 1000);
       
       tokenClient.requestAccessToken({
         prompt: 'consent',
@@ -89,6 +120,7 @@ export const signInWithGoogle = async () => {
           if (callbackExecuted) return;
           callbackExecuted = true;
           clearTimeout(timeoutId);
+          if (popupCheckInterval) clearInterval(popupCheckInterval);
           
           if (response.error) {
             if (response.error === 'popup_closed_by_user') {
@@ -97,7 +129,7 @@ export const signInWithGoogle = async () => {
               reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
             } else if (response.error === 'access_denied') {
               reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
-            } else if (response.error === 'popup_blocked_by_browser') {
+            } else if (response.error === 'popup_blocked_by_browser' || response.error.includes('popup')) {
               reject(new Error('popup_blocked'));
             } else {
               // Check if this might be a popup blocking issue
@@ -141,6 +173,7 @@ export const signInWithGoogle = async () => {
           if (callbackExecuted) return;
           callbackExecuted = true;
           clearTimeout(timeoutId);
+          if (popupCheckInterval) clearInterval(popupCheckInterval);
           
           // Handle GSI library errors that don't go through the main callback
           if (error.type === 'popup_failed_to_open' || 
@@ -154,37 +187,6 @@ export const signInWithGoogle = async () => {
           }
         }
       });
-      
-      // Additional check for immediate popup blocking detection
-      // Some browsers block popups synchronously
-      setTimeout(() => {
-        if (!callbackExecuted) {
-          // Check if the popup was blocked by trying to detect common popup blocking scenarios
-          try {
-            // This is a heuristic - if we haven't received any callback within a short time
-            // and no error callback was triggered, it's likely a popup block
-            const testPopup = window.open('', '_blank', 'width=1,height=1');
-            if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
-              // Popup was blocked
-              if (!callbackExecuted) {
-                callbackExecuted = true;
-                clearTimeout(timeoutId);
-                reject(new Error('popup_blocked'));
-              }
-            } else {
-              // Close the test popup
-              testPopup.close();
-            }
-          } catch (e) {
-            // If we can't even test for popup blocking, assume it's blocked
-            if (!callbackExecuted) {
-              callbackExecuted = true;
-              clearTimeout(timeoutId);
-              reject(new Error('popup_blocked'));
-            }
-          }
-        }
-      }, 500); // Check after 500ms
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);
@@ -192,7 +194,8 @@ export const signInWithGoogle = async () => {
     if (error.message?.includes('Failed to open popup') || 
         error.message?.includes('popup') || 
         error.message?.includes('blocked') ||
-        error.message?.includes('Maybe blocked by the browser')) {
+        error.message?.includes('Maybe blocked by the browser') ||
+        error.message === 'popup_blocked') {
       throw new Error('popup_blocked');
     }
     throw error;

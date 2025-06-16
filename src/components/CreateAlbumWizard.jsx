@@ -136,7 +136,7 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
       // Handle popup blocking specifically
       if (error.message === 'popup_blocked' || error.message === 'popup_closed_by_user') {
         setShowPopupHelp(true)
-        setError('The sign-in popup was blocked by your browser. Please allow popups for this site or try the alternative sign-in method below.')
+        setError('Your browser is blocking the sign-in popup. Please use the "Alternative Sign-in" button below, or allow popups for this site in your browser settings.')
       } else if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
         setError('This application requires domain verification to access Google services. In development mode, please ensure your domain is added to the Google Cloud Console authorized origins, or contact the developer for assistance.')
       } else if (error.message.includes('popup_closed_by_user')) {
@@ -144,7 +144,7 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
       } else {
         // For any other error that might be popup-related, show the alternative option
         setShowPopupHelp(true)
-        setError('Failed to connect to Google. This may be due to popup blocking or domain verification requirements. Please try the alternative sign-in method below.')
+        setError('Failed to connect to Google. Please try the alternative sign-in method below.')
       }
     } finally {
       setIsLoading(false)
@@ -163,7 +163,6 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
       
       // Handle popup blocking specifically for redirect method
       if (error.message === 'popup_blocked' || error.message.includes('popup_blocked')) {
-        setShowPopupHelp(true)
         setError('Both sign-in methods are being blocked by your browser. Please allow popups for this site in your browser settings and try again. You may also need to try a different browser or disable popup blockers temporarily.')
       } else if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
         setError('This application requires domain verification to access Google services. In development mode, please ensure your domain is added to the Google Cloud Console authorized origins, or contact the developer for assistance.')
@@ -300,16 +299,17 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
             <div className="flex items-start">
               <AlertCircleIcon className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
               <div>
-                <p className="text-blue-800 font-medium">Browser Popup Blocking Detected</p>
-                <p className="text-blue-700 text-sm mb-3">Your browser is blocking popups required for Google sign-in. Here are solutions to try:</p>
+                <p className="text-blue-800 font-medium">Popup Blocked - Use Alternative Sign-in</p>
+                <p className="text-blue-700 text-sm mb-3">Your browser blocked the Google sign-in popup. This is common with popup blockers and browser security settings.</p>
                 <div className="space-y-2 text-sm text-blue-700">
-                  <p><strong>Option 1:</strong> Allow popups for this site in your browser settings:</p>
+                  <p><strong>Quick Solution:</strong> Click the "Alternative Sign-in (Redirect)" button below - this will work even with popup blockers enabled.</p>
+                  <p><strong>Or fix popup blocking:</strong></p>
                   <ul className="ml-4 list-disc space-y-1 text-xs">
                     <li>Look for a popup blocker icon in your address bar and click "Allow"</li>
-                    <li>Or go to browser settings and add this site to popup exceptions</li>
+                    <li>Add this site to your browser's popup exceptions</li>
+                    <li>Try a different browser (Chrome, Firefox, Safari)</li>
+                    <li>Temporarily disable ad blockers or popup blockers</li>
                   </ul>
-                  <p><strong>Option 2:</strong> Try a different browser (Chrome, Firefox, Safari)</p>
-                  <p><strong>Option 3:</strong> Temporarily disable popup blockers or ad blockers</p>
                 </div>
               </div>
             </div>
@@ -427,6 +427,11 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
                         <RefreshCwIcon className="w-5 h-5 mr-2" />
                         Alternative Sign-in (Redirect)
                       </Button>
+                      
+                      <div className="text-xs text-gray-400 mt-2">
+                        <p>💡 If the popup method doesn't work, use the alternative sign-in method above.</p>
+                        <p>The redirect method works with all browsers and popup blockers.</p>
+                      </div>
                     </div>
                   ) : (
                     <div className="bg-green-100 text-green-800 p-4 rounded-lg">

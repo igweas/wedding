@@ -1,8 +1,8 @@
 import { gapi } from 'gapi-script';
 
-// Google API configuration
-const CLIENT_ID = 'your-google-client-id.apps.googleusercontent.com';
-const API_KEY = 'your-google-api-key';
+// Google API configuration - REPLACE THESE WITH YOUR ACTUAL CREDENTIALS
+const CLIENT_ID = 'your-client-id-here.apps.googleusercontent.com';
+const API_KEY = 'your-api-key-here';
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
 
@@ -12,14 +12,26 @@ export const initializeGapi = async () => {
   if (isInitialized) return;
   
   try {
-    await gapi.load('client:auth2', async () => {
-      await gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: [DISCOVERY_DOC],
-        scope: SCOPES
+    // Check if credentials are still placeholder values
+    if (CLIENT_ID.includes('your-client-id-here') || API_KEY.includes('your-api-key-here')) {
+      throw new Error('Google API credentials not configured. Please update CLIENT_ID and API_KEY in src/utils/googleApi.js');
+    }
+    
+    await new Promise((resolve, reject) => {
+      gapi.load('client:auth2', async () => {
+        try {
+          await gapi.client.init({
+            apiKey: API_KEY,
+            clientId: CLIENT_ID,
+            discoveryDocs: [DISCOVERY_DOC],
+            scope: SCOPES
+          });
+          isInitialized = true;
+          resolve();
+        } catch (error) {
+          reject(error);
+        }
       });
-      isInitialized = true;
     });
   } catch (error) {
     console.error('Error initializing Google API:', error);
@@ -31,6 +43,11 @@ export const signInWithGoogle = async () => {
   try {
     await initializeGapi();
     const authInstance = gapi.auth2.getAuthInstance();
+    
+    if (!authInstance) {
+      throw new Error('Google Auth not initialized properly');
+    }
+    
     const user = await authInstance.signIn();
     
     const profile = user.getBasicProfile();
@@ -43,6 +60,11 @@ export const signInWithGoogle = async () => {
     };
   } catch (error) {
     console.error('Error signing in with Google:', error);
+    if (error.error === 'popup_closed_by_user') {
+      throw new Error('Sign-in was cancelled. Please try again.');
+    } else if (error.error === 'invalid_client') {
+      throw new Error('Google API credentials are not properly configured. Please check your setup.');
+    }
     throw error;
   }
 };
@@ -50,7 +72,9 @@ export const signInWithGoogle = async () => {
 export const signOutFromGoogle = async () => {
   try {
     const authInstance = gapi.auth2.getAuthInstance();
-    await authInstance.signOut();
+    if (authInstance) {
+      await authInstance.signOut();
+    }
   } catch (error) {
     console.error('Error signing out from Google:', error);
     throw error;
@@ -135,6 +159,11 @@ export const createEventFolderStructure = async (eventName, groups) => {
 
 export const uploadFileToDrive = async (file, folderId, fileName = null) => {
   try {
+    const user = getCurrentUser();
+    if (!user || !user.accessToken) {
+      throw new Error('User not authenticated');
+    }
+
     const fileMetadata = {
       name: fileName || file.name,
       parents: [folderId]
@@ -147,13 +176,14 @@ export const uploadFileToDrive = async (file, folderId, fileName = null) => {
     const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink', {
       method: 'POST',
       headers: new Headers({
-        'Authorization': `Bearer ${getCurrentUser()?.accessToken}`
+        'Authorization': `Bearer ${user.accessToken}`
       }),
       body: form
     });
 
     if (!response.ok) {
-      throw new Error(`Upload failed: ${response.statusText}`);
+      const errorText = await response.text();
+      throw new Error(`Upload failed: ${response.statusText} - ${errorText}`);
     }
 
     return await response.json();

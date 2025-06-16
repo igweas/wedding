@@ -71,20 +71,29 @@ export const signInWithGoogle = async () => {
       throw new Error('Google Auth not initialized properly');
     }
     
-    // Request access token using popup mode with direct callback
+    // First attempt: Try popup mode
     return new Promise((resolve, reject) => {
+      let popupAttempted = false;
+      
       tokenClient.requestAccessToken({
         prompt: 'consent',
         callback: async (response) => {
           if (response.error) {
             if (response.error === 'popup_closed_by_user') {
-              reject(new Error('Sign-in was cancelled. Please try again.'));
+              reject(new Error('popup_closed_by_user'));
             } else if (response.error === 'invalid_client') {
               reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
             } else if (response.error === 'access_denied') {
               reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
+            } else if (response.error === 'popup_blocked_by_browser') {
+              reject(new Error('popup_blocked'));
             } else {
-              reject(new Error(`Authentication error: ${response.error}`));
+              // Check if this might be a popup blocking issue
+              if (response.error.includes('popup') || response.error.includes('blocked')) {
+                reject(new Error('popup_blocked'));
+              } else {
+                reject(new Error(`Authentication error: ${response.error}`));
+              }
             }
             return;
           }
@@ -117,9 +126,96 @@ export const signInWithGoogle = async () => {
           }
         }
       });
+      
+      // Set a timeout to detect if popup was blocked
+      setTimeout(() => {
+        if (!popupAttempted) {
+          popupAttempted = true;
+          // This timeout suggests popup might be blocked
+          reject(new Error('popup_blocked'));
+        }
+      }, 1000);
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);
+    throw error;
+  }
+};
+
+// Alternative sign-in method using redirect flow
+export const signInWithGoogleRedirect = async () => {
+  try {
+    await initializeGapi();
+    
+    // Create a redirect-based token client
+    const redirectTokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      ux_mode: 'redirect',
+      redirect_uri: window.location.origin + window.location.pathname
+    });
+    
+    // Store current state to restore after redirect
+    sessionStorage.setItem('google_auth_redirect', 'true');
+    sessionStorage.setItem('google_auth_return_url', window.location.href);
+    
+    // Request access token using redirect mode
+    redirectTokenClient.requestAccessToken({
+      prompt: 'consent'
+    });
+    
+  } catch (error) {
+    console.error('Error with redirect sign-in:', error);
+    throw error;
+  }
+};
+
+// Handle redirect callback
+export const handleRedirectCallback = async () => {
+  try {
+    const urlParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = urlParams.get('access_token');
+    const error = urlParams.get('error');
+    
+    if (error) {
+      throw new Error(`Authentication error: ${error}`);
+    }
+    
+    if (accessToken && sessionStorage.getItem('google_auth_redirect') === 'true') {
+      // Clear redirect flag
+      sessionStorage.removeItem('google_auth_redirect');
+      
+      // Get user info using the access token
+      const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      if (!userInfoResponse.ok) {
+        throw new Error('Failed to fetch user information');
+      }
+      
+      const userInfo = await userInfoResponse.json();
+      
+      currentUser = {
+        id: userInfo.id,
+        name: userInfo.name,
+        email: userInfo.email,
+        imageUrl: userInfo.picture,
+        accessToken: accessToken
+      };
+      
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      return currentUser;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error handling redirect callback:', error);
+    sessionStorage.removeItem('google_auth_redirect');
     throw error;
   }
 };

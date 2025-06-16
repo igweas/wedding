@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card'
-import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, FolderIcon, UserIcon, AlertCircleIcon, LoaderIcon } from 'lucide-react'
+import { ArrowLeftIcon, ArrowRightIcon, CheckIcon, FolderIcon, UserIcon, AlertCircleIcon, LoaderIcon, RefreshCwIcon } from 'lucide-react'
 import { 
   initializeGapi, 
   signInWithGoogle, 
+  signInWithGoogleRedirect,
+  handleRedirectCallback,
   signOutFromGoogle, 
   isSignedIn, 
   getCurrentUser,
@@ -29,6 +31,7 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPopupHelp, setShowPopupHelp] = useState(false)
   const [albumData, setAlbumData] = useState({
     eventName: '',
     selectedGroups: [],
@@ -44,6 +47,19 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
     const initGoogle = async () => {
       try {
         await initializeGapi()
+        
+        // Check for redirect callback first
+        const redirectUser = await handleRedirectCallback()
+        if (redirectUser) {
+          setAlbumData(prev => ({
+            ...prev,
+            googleAccount: redirectUser,
+            isGoogleConnected: true
+          }))
+          setCurrentStep(3) // Move to confirmation step after successful redirect
+          return
+        }
+        
         // Check if user is already signed in
         if (isSignedIn()) {
           const user = getCurrentUser()
@@ -99,6 +115,7 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
   const handleGoogleConnect = async () => {
     setIsLoading(true)
     setError('')
+    setShowPopupHelp(false)
     
     try {
       const user = await signInWithGoogle()
@@ -116,8 +133,11 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
     } catch (error) {
       console.error('Google sign-in failed:', error)
       
-      // Provide more specific error messages
-      if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
+      // Handle popup blocking specifically
+      if (error.message === 'popup_blocked' || error.message === 'popup_closed_by_user') {
+        setShowPopupHelp(true)
+        setError('The sign-in popup was blocked by your browser. Please allow popups for this site or try the alternative sign-in method below.')
+      } else if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
         setError('This application requires domain verification to access Google services. In development mode, please ensure your domain is added to the Google Cloud Console authorized origins, or contact the developer for assistance.')
       } else if (error.message.includes('popup_closed_by_user')) {
         setError('Sign-in was cancelled. Please try again.')
@@ -125,6 +145,20 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
         setError('Failed to connect to Google. This may be due to domain verification requirements. Please contact the developer.')
       }
     } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleConnectRedirect = async () => {
+    setIsLoading(true)
+    setError('')
+    
+    try {
+      await signInWithGoogleRedirect()
+      // The page will redirect, so we don't need to handle the response here
+    } catch (error) {
+      console.error('Google redirect sign-in failed:', error)
+      setError('Failed to initiate Google sign-in. Please try again or contact support.')
       setIsLoading(false)
     }
   }
@@ -239,9 +273,28 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
             <div>
               <p className="text-red-800 font-medium">Error</p>
               <p className="text-red-700 text-sm">{error}</p>
-              <div className="mt-2 text-xs text-red-600">
-                <p><strong>Development Note:</strong> This error typically occurs in development environments due to Google's domain verification requirements.</p>
-                <p><strong>Solution:</strong> Add your current domain to the Google Cloud Console authorized origins, or contact the developer for assistance.</p>
+              {!showPopupHelp && (
+                <div className="mt-2 text-xs text-red-600">
+                  <p><strong>Development Note:</strong> This error typically occurs in development environments due to Google's domain verification requirements.</p>
+                  <p><strong>Solution:</strong> Add your current domain to the Google Cloud Console authorized origins, or contact the developer for assistance.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Popup Help Display */}
+        {showPopupHelp && (
+          <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <AlertCircleIcon className="h-5 w-5 text-blue-600 mr-2 mt-0.5 flex-shrink-0" />
+              <div>
+                <p className="text-blue-800 font-medium">Popup Blocked - Alternative Sign-in Available</p>
+                <p className="text-blue-700 text-sm mb-3">Your browser blocked the Google sign-in popup. Here are two solutions:</p>
+                <div className="space-y-2 text-sm text-blue-700">
+                  <p><strong>Option 1:</strong> Allow popups for this site in your browser settings and try again</p>
+                  <p><strong>Option 2:</strong> Use the alternative sign-in method below (redirects to Google)</p>
+                </div>
               </div>
             </div>
           </div>
@@ -329,23 +382,37 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
                   </p>
                   
                   {!albumData.isGoogleConnected ? (
-                    <Button
-                      onClick={handleGoogleConnect}
-                      disabled={isLoading}
-                      className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 disabled:opacity-50"
-                    >
-                      {isLoading ? (
-                        <LoaderIcon className="w-5 h-5 mr-2 animate-spin" />
-                      ) : (
-                        <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
+                    <div className="space-y-4">
+                      <Button
+                        onClick={handleGoogleConnect}
+                        disabled={isLoading}
+                        className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-3 disabled:opacity-50 w-full"
+                      >
+                        {isLoading ? (
+                          <LoaderIcon className="w-5 h-5 mr-2 animate-spin" />
+                        ) : (
+                          <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                          </svg>
+                        )}
+                        {isLoading ? 'Connecting...' : 'Sign in with Google (Popup)'}
+                      </Button>
+                      
+                      {showPopupHelp && (
+                        <Button
+                          onClick={handleGoogleConnectRedirect}
+                          disabled={isLoading}
+                          variant="outline"
+                          className="bg-gray-100 text-gray-900 hover:bg-gray-200 px-8 py-3 disabled:opacity-50 w-full border-gray-300"
+                        >
+                          <RefreshCwIcon className="w-5 h-5 mr-2" />
+                          Alternative Sign-in (Redirect)
+                        </Button>
                       )}
-                      {isLoading ? 'Connecting...' : 'Sign in with Google'}
-                    </Button>
+                    </div>
                   ) : (
                     <div className="bg-green-100 text-green-800 p-4 rounded-lg">
                       <div className="flex items-center justify-center mb-2">

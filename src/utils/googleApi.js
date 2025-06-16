@@ -73,9 +73,16 @@ export const signInWithGoogle = async () => {
     
     // Request access token using popup mode
     return new Promise((resolve, reject) => {
+      // Set up a timeout to detect popup blocking
+      let timeoutId = setTimeout(() => {
+        reject(new Error('popup_blocked'));
+      }, 1000); // If no response within 1 second, likely blocked
+      
       tokenClient.requestAccessToken({
         prompt: 'consent',
         callback: async (response) => {
+          clearTimeout(timeoutId);
+          
           if (response.error) {
             if (response.error === 'popup_closed_by_user') {
               reject(new Error('popup_closed_by_user'));
@@ -124,8 +131,12 @@ export const signInWithGoogle = async () => {
           }
         },
         error_callback: (error) => {
+          clearTimeout(timeoutId);
           // Handle GSI library errors that don't go through the main callback
-          if (error.type === 'popup_failed_to_open' || error.message?.includes('popup')) {
+          if (error.type === 'popup_failed_to_open' || 
+              error.message?.includes('popup') || 
+              error.message?.includes('Failed to open popup') ||
+              error.message?.includes('blocked')) {
             reject(new Error('popup_blocked'));
           } else {
             reject(new Error(`Authentication error: ${error.message || error.type || 'Unknown error'}`));
@@ -135,10 +146,11 @@ export const signInWithGoogle = async () => {
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);
-    // Check if the error might be related to popup blocking
+    // Enhanced popup blocking detection
     if (error.message?.includes('Failed to open popup') || 
         error.message?.includes('popup') || 
-        error.message?.includes('blocked')) {
+        error.message?.includes('blocked') ||
+        error.message?.includes('Maybe blocked by the browser')) {
       throw new Error('popup_blocked');
     }
     throw error;

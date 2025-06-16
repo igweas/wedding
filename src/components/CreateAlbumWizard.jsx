@@ -161,12 +161,18 @@ export default function CreateAlbumWizard({ onComplete, onCancel }) {
     } catch (error) {
       console.error('Google redirect sign-in failed:', error)
       
-      // Handle popup blocking specifically for redirect method
-      if (error.message === 'popup_blocked' || error.message.includes('popup_blocked')) {
-        setError('Both sign-in methods are being blocked by your browser. Please allow popups for this site in your browser settings and try again. You may also need to try a different browser or disable popup blockers temporarily.')
+      // Handle popup blocking specifically for redirect method - check for popup/blocked keywords
+      if (error.message === 'popup_blocked' || 
+          error.message.includes('popup') || 
+          error.message.includes('blocked') ||
+          error.message.includes('Failed to open popup window')) {
+        setShowPopupHelp(true)
+        setError('Your browser blocked the Google sign-in popup. Please allow popups for this site in your browser settings and try again. You may also need to try a different browser or disable popup blockers temporarily.')
       } else if (error.message.includes('domain verification') || error.message.includes('access_denied')) {
         setError('This application requires domain verification to access Google services. In development mode, please ensure your domain is added to the Google Cloud Console authorized origins, or contact the developer for assistance.')
       } else {
+        // For any other error, also show popup help as it's likely popup-related
+        setShowPopupHelp(true)
         setError('Failed to initiate Google sign-in. This may be due to browser security settings or popup blocking. Please ensure popups are allowed for this site and try again.')
       }
       setIsLoading(false)

@@ -73,16 +73,9 @@ export const signInWithGoogle = async () => {
     
     // Request access token using popup mode
     return new Promise((resolve, reject) => {
-      // Set up a timeout to detect popup blocking
-      let timeoutId = setTimeout(() => {
-        reject(new Error('popup_blocked'));
-      }, 1000); // 1 second timeout for popup to appear
-      
       tokenClient.requestAccessToken({
         prompt: 'consent',
         callback: async (response) => {
-          clearTimeout(timeoutId);
-          
           if (response.error) {
             if (response.error === 'popup_closed_by_user') {
               reject(new Error('popup_closed_by_user'));
@@ -131,7 +124,6 @@ export const signInWithGoogle = async () => {
           }
         },
         error_callback: (error) => {
-          clearTimeout(timeoutId);
           // Handle GSI library errors that don't go through the main callback
           if (error.type === 'popup_failed_to_open' || error.message?.includes('popup')) {
             reject(new Error('popup_blocked'));
@@ -140,12 +132,6 @@ export const signInWithGoogle = async () => {
           }
         }
       });
-      
-      // Additional check: if the tokenClient.requestAccessToken doesn't trigger any callback
-      // within a reasonable time, assume popup was blocked
-      setTimeout(() => {
-        reject(new Error('popup_blocked'));
-      }, 2000);
     });
   } catch (error) {
     console.error('Error signing in with Google:', error);

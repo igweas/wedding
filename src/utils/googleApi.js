@@ -1,5 +1,3 @@
-import { gapi } from 'gapi-script';
-
 // Google API configuration - loaded from environment variables
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY;
@@ -24,23 +22,51 @@ export const initializeGapi = async () => {
       throw new Error('Google API credentials not configured. Please update VITE_GOOGLE_CLIENT_ID and VITE_GOOGLE_API_KEY in your .env file with your actual credentials.');
     }
     
+    // Wait for both gapi and google to be available
+    await new Promise((resolve) => {
+      const checkReady = () => {
+        if (window.gapi && window.google) {
+          resolve();
+        } else {
+          setTimeout(checkReady, 100);
+        }
+      };
+      checkReady();
+    });
+    
     // Initialize GAPI client for Drive API only
     await new Promise((resolve, reject) => {
-      gapi.load('client:auth2', async () => {
+      window.gapi.load('client', async () => {
         try {
-          await gapi.client.init({
+          await window.gapi.client.init({
             apiKey: API_KEY,
-            clientId: CLIENT_ID,
-            discoveryDocs: [DISCOVERY_DOC],
-            scope: SCOPES
+            discoveryDocs: [DISCOVERY_DOC]
           });
-          isInitialized = true;
           resolve();
         } catch (error) {
           reject(error);
         }
       });
     });
+    
+    // Initialize Google Identity Services token client
+    tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: CLIENT_ID,
+      scope: SCOPES,
+      callback: (response) => {
+        if (response.error) {
+          console.error('Token client error:', response.error);
+          return;
+        }
+        // Token received successfully
+        currentUser = {
+          ...currentUser,
+          accessToken: response.access_token
+        };
+      }
+    });
+    
+    isInitialized = true;
   } catch (error) {
     console.error('Error initializing Google API:', error);
     throw error;
@@ -50,42 +76,67 @@ export const initializeGapi = async () => {
 export const signInWithGoogle = async () => {
   try {
     await initializeGapi();
-    const authInstance = gapi.auth2.getAuthInstance();
     
-    if (!authInstance) {
+    if (!tokenClient) {
       throw new Error('Google Auth not initialized properly');
     }
     
-    const user = await authInstance.signIn();
-    
-    const profile = user.getBasicProfile();
-    currentUser = {
-      id: profile.getId(),
-      name: profile.getName(),
-      email: profile.getEmail(),
-      imageUrl: profile.getImageUrl(),
-      accessToken: user.getAuthResponse().access_token
-    };
-    
-    return currentUser;
+    // Request access token
+    return new Promise((resolve, reject) => {
+      tokenClient.callback = async (response) => {
+        if (response.error) {
+          if (response.error === 'popup_closed_by_user') {
+            reject(new Error('Sign-in was cancelled. Please try again.'));
+          } else if (response.error === 'invalid_client') {
+            reject(new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.'));
+          } else if (response.error === 'access_denied') {
+            reject(new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.'));
+          } else {
+            reject(new Error(`Authentication error: ${response.error}`));
+          }
+          return;
+        }
+        
+        try {
+          // Get user info using the access token
+          const userInfoResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+            headers: {
+              'Authorization': `Bearer ${response.access_token}`
+            }
+          });
+          
+          if (!userInfoResponse.ok) {
+            throw new Error('Failed to fetch user information');
+          }
+          
+          const userInfo = await userInfoResponse.json();
+          
+          currentUser = {
+            id: userInfo.id,
+            name: userInfo.name,
+            email: userInfo.email,
+            imageUrl: userInfo.picture,
+            accessToken: response.access_token
+          };
+          
+          resolve(currentUser);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    });
   } catch (error) {
     console.error('Error signing in with Google:', error);
-    if (error.error === 'popup_closed_by_user') {
-      throw new Error('Sign-in was cancelled. Please try again.');
-    } else if (error.error === 'invalid_client') {
-      throw new Error('Google API credentials are not properly configured. Please check your .env file and Google Cloud Console setup.');
-    } else if (error.error === 'access_denied') {
-      throw new Error('Access denied. This may be due to domain verification requirements. Please contact the developer to add your domain to the authorized origins.');
-    }
     throw error;
   }
 };
 
 export const signOutFromGoogle = async () => {
   try {
-    const authInstance = gapi.auth2.getAuthInstance();
-    if (authInstance) {
-      await authInstance.signOut();
+    if (currentUser && currentUser.accessToken) {
+      window.google.accounts.oauth2.revoke(currentUser.accessToken);
     }
     currentUser = null;
   } catch (error) {
@@ -95,12 +146,7 @@ export const signOutFromGoogle = async () => {
 };
 
 export const isSignedIn = () => {
-  try {
-    const authInstance = gapi.auth2.getAuthInstance();
-    return authInstance && authInstance.isSignedIn.get();
-  } catch (error) {
-    return false;
-  }
+  return currentUser !== null && currentUser.accessToken !== undefined;
 };
 
 export const getCurrentUser = () => {
@@ -115,7 +161,7 @@ export const createDriveFolder = async (folderName, parentFolderId = null) => {
       parents: parentFolderId ? [parentFolderId] : undefined
     };
 
-    const response = await gapi.client.drive.files.create({
+    const response = await window.gapi.client.drive.files.create({
       resource: fileMetadata,
       fields: 'id,name'
     });
@@ -191,7 +237,7 @@ export const uploadFileToDrive = async (file, folderId, fileName = null) => {
 
 export const listFilesInFolder = async (folderId) => {
   try {
-    const response = await gapi.client.drive.files.list({
+    const response = await window.gapi.client.drive.files.list({
       q: `'${folderId}' in parents and trashed=false`,
       fields: 'files(id,name,mimeType,createdTime,webViewLink,thumbnailLink)'
     });
@@ -205,7 +251,7 @@ export const listFilesInFolder = async (folderId) => {
 
 export const deleteFileFromDrive = async (fileId) => {
   try {
-    await gapi.client.drive.files.delete({
+    await window.gapi.client.drive.files.delete({
       fileId: fileId
     });
     return true;
